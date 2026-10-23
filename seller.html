@@ -1,0 +1,763 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#A6311A">
+<title>شايچي للچايچية</title>
+<style>html{color-scheme:light}body{margin:0}img{max-width:100%}[hidden]{display:none!important}:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}</style>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;600&family=Lalezar&display=swap">
+<style>
+/* Layout: one phone-width column. Sticky header, a big availability block that carries the colour, incoming requests with a countdown, bottom tabs for requests / today. */
+:root {
+  --bg: #EEF1EE;
+  --surface: #FFFFFF;
+  --surface-2: #E3E9E5;
+  --ink: #17201D;
+  --ink-2: #52605B;
+  --line: #D1D9D4;
+  --tea: #A6311A;
+  --tea-ink: #FFFFFF;
+  --ok: #0E6B5F;
+  --ok-bg: #D5EEE8;
+  --busy: #7F5200;
+  --busy-bg: #F5E6C3;
+  --off: #3C4743;
+  --off-ink: #FFFFFF;
+  --scrim: rgba(10, 16, 14, 0.5);
+  --font-display: 'Lalezar', 'Segoe UI', Tahoma, sans-serif;
+  --font-body: 'IBM Plex Sans Arabic', 'Segoe UI', Tahoma, sans-serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0F1514; --surface: #172120; --surface-2: #1F2C2A; --ink: #E7EEEB; --ink-2: #9DB0AA;
+    --line: #2A3A37; --tea: #E5755A; --tea-ink: #1A0A06; --ok: #5CD0C0; --ok-bg: #12352F;
+    --busy: #E8B95A; --busy-bg: #3A2D10; --off: #2A3A37; --off-ink: #E7EEEB; --scrim: rgba(0, 0, 0, 0.6); color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0F1514; --surface: #172120; --surface-2: #1F2C2A; --ink: #E7EEEB; --ink-2: #9DB0AA;
+  --line: #2A3A37; --tea: #E5755A; --tea-ink: #1A0A06; --ok: #5CD0C0; --ok-bg: #12352F;
+  --busy: #E8B95A; --busy-bg: #3A2D10; --off: #2A3A37; --off-ink: #E7EEEB; --scrim: rgba(0, 0, 0, 0.6); color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+body {
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font-body);
+  font-size: 15px;
+  line-height: 1.6;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 0 96px;
+}
+body::before {
+  content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px);
+  z-index: 10; background: var(--bg);
+}
+button, input { font: inherit; color: inherit; }
+button { cursor: pointer; }
+:focus-visible { outline: 3px solid var(--tea); outline-offset: 2px; }
+.app { max-width: 560px; margin-inline: auto; }
+.ico { width: 1.25em; height: 1.25em; flex: none; }
+
+.top {
+  position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5; background: var(--bg);
+  display: flex; align-items: center; justify-content: space-between; gap: 12px; padding-block: 14px 10px;
+}
+.brand { display: flex; align-items: center; gap: 8px; font-family: var(--font-display); font-size: 28px; line-height: 1; color: var(--tea); white-space: nowrap; }
+.brand .ico { width: 30px; height: 30px; }
+.me { background: var(--surface); border: 1px solid var(--line); border-radius: 999px; padding: 4px 14px; font-weight: 500; font-size: 14px; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+h2 { font-size: 13px; font-weight: 600; letter-spacing: 0.04em; color: var(--ink-2); margin: 22px 0 10px; display: flex; align-items: center; gap: 8px; }
+h2 .n { background: var(--tea); color: var(--tea-ink); border-radius: 999px; min-width: 20px; padding: 0 6px; text-align: center; font-size: 12px; }
+
+/* availability */
+.avail { position: relative; overflow: hidden; border-radius: 20px; padding: 18px; margin-top: 6px; background: var(--off); color: var(--off-ink); }
+.avail.on { background: var(--tea); color: var(--tea-ink); }
+.avail .deco { position: absolute; left: -18px; bottom: -22px; width: 150px; height: 150px; opacity: 0.16; }
+.avail .eyebrow { font-size: 13px; font-weight: 500; opacity: 0.9; }
+.avail .st { font-family: var(--font-display); font-size: 34px; line-height: 1.2; margin: 2px 0 4px; }
+.avail p { margin: 0 0 14px; font-size: 14px; opacity: 0.92; max-width: 30ch; }
+.avail .btn-inv { background: var(--tea-ink); color: var(--tea); border: 0; border-radius: 12px; padding: 12px 22px; font-weight: 600; font-size: 16px; position: relative; }
+.avail:not(.on) .btn-inv { background: var(--off-ink); color: var(--off); }
+
+/* order cards */
+.cards { display: grid; gap: 10px; }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 18px; padding: 14px; display: grid; gap: 10px; }
+.card .row { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
+.card .where { font-weight: 600; font-size: 16px; line-height: 1.4; min-width: 0; }
+.card .meta { color: var(--ink-2); font-size: 13px; }
+.card .lines { margin: 0; padding: 0; list-style: none; font-size: 14px; display: grid; gap: 2px; }
+.card .lines li { display: flex; justify-content: space-between; gap: 12px; }
+.card .tot { font-weight: 600; }
+.timer { flex: none; font-family: var(--font-display); font-size: 22px; line-height: 1; color: var(--tea); background: var(--surface-2); border-radius: 12px; padding: 6px 10px; font-variant-numeric: tabular-nums; }
+.timer.low { background: var(--tea); color: var(--tea-ink); }
+.btns { display: flex; gap: 10px; }
+.btns .btn, .btns .btn-line { flex: 1; }
+.card.due { border-color: var(--tea); box-shadow: 0 0 0 2px var(--tea); }
+.stat.wide { grid-column: 1 / -1; }
+.btn { background: var(--tea); color: var(--tea-ink); border: 0; border-radius: 12px; padding: 11px 18px; font-weight: 600; }
+.btn-line { background: transparent; color: var(--ink); border: 1px solid var(--line); border-radius: 12px; padding: 11px 18px; font-weight: 500; }
+.btn-ok { background: var(--ok); color: var(--surface); border: 0; border-radius: 12px; padding: 11px 18px; font-weight: 600; flex: 1; }
+.pill { display: inline-block; font-size: 12px; font-weight: 600; padding: 1px 9px; border-radius: 999px; }
+.pill.ok { background: var(--ok-bg); color: var(--ok); }
+.pill.busy { background: var(--busy-bg); color: var(--busy); }
+
+.empty { background: var(--surface); border: 1px solid var(--line); border-radius: 18px; padding: 22px 18px; text-align: center; color: var(--ink-2); display: grid; gap: 4px; justify-items: center; }
+.empty strong { font-family: var(--font-display); font-weight: 400; font-size: 22px; color: var(--ink); }
+.empty p { margin: 0; font-size: 14px; }
+.empty .ico { width: 36px; height: 36px; color: var(--tea); }
+.test { margin-top: 14px; width: 100%; }
+.demo-note { color: var(--ink-2); font-size: 12px; margin: 14px 2px 0; }
+
+/* today */
+.stats { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 6px; }
+.stat { background: var(--surface); border: 1px solid var(--line); border-radius: 18px; padding: 14px; }
+.stat span { display: block; color: var(--ink-2); font-size: 13px; }
+.stat b { font-family: var(--font-display); font-weight: 400; font-size: 30px; line-height: 1.2; display: block; margin-top: 2px; }
+.stat b small { font-family: var(--font-body); font-size: 13px; color: var(--ink-2); font-weight: 400; margin-inline-start: 4px; }
+.missed { color: var(--ink-2); font-size: 13px; margin: 10px 2px 0; }
+.hist { display: grid; gap: 8px; }
+.hist .card { grid-template-columns: minmax(0, 1fr) auto; align-items: center; padding: 12px 14px; }
+
+.snd { width: 40px; height: 40px; flex: none; border-radius: 50%; border: 1px solid var(--line); background: var(--surface); display: grid; place-items: center; color: var(--tea); }
+.snd[aria-pressed="false"] { color: var(--ink-2); }
+
+/* my drinks */
+.mlist { display: grid; gap: 8px; margin-top: 6px; }
+.mrow { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 8px 12px; background: var(--surface); border: 1px solid var(--line); border-radius: 16px; padding: 12px 14px; }
+.mrow.off .t, .mrow.off .pr { opacity: 0.55; }
+.mrow .t { font-weight: 600; font-size: 16px; }
+.pr { grid-column: 1 / -1; display: flex; align-items: center; gap: 6px; }
+.pr button { width: 34px; height: 34px; border-radius: 50%; border: 1px solid var(--line); background: var(--surface); font-size: 20px; line-height: 1; display: grid; place-items: center; }
+.pr output { min-width: 88px; text-align: center; font-weight: 500; font-variant-numeric: tabular-nums; }
+.sw { width: 52px; height: 30px; border-radius: 999px; border: 1px solid var(--line); background: var(--surface-2); position: relative; padding: 0; }
+.sw::after { content: ""; position: absolute; top: 3px; inset-inline-start: 3px; width: 22px; height: 22px; border-radius: 50%; background: var(--ink-2); transition: inset-inline-start 0.15s; }
+.sw[aria-checked="true"] { background: var(--ok); border-color: var(--ok); }
+.sw[aria-checked="true"]::after { inset-inline-start: 25px; background: var(--surface); }
+@media (prefers-reduced-motion: reduce) { .sw::after { transition: none; } }
+
+/* gate (login / join request) */
+.gate { position: fixed; inset: 0; z-index: 30; background: var(--bg); overflow-y: auto;
+  padding: max(20px, env(safe-area-inset-top, 0px)) max(16px, env(safe-area-inset-right, 0px)) max(24px, env(safe-area-inset-bottom, 0px)) max(16px, env(safe-area-inset-left, 0px)); }
+.gate-in { max-width: 460px; margin-inline: auto; display: grid; gap: 14px; }
+.gate .brand { font-size: 36px; margin-top: 8px; }
+.gate .brand .ico { width: 38px; height: 38px; }
+.seg { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; background: var(--surface-2); border-radius: 14px; padding: 4px; }
+.seg button { border: 0; background: transparent; border-radius: 10px; padding: 9px; font-weight: 500; color: var(--ink-2); }
+.seg button[aria-pressed="true"] { background: var(--surface); color: var(--tea); font-weight: 600; }
+.gform { background: var(--surface); border: 1px solid var(--line); border-radius: 20px; padding: 16px; display: grid; gap: 12px; }
+.gform label.fl { display: block; font-weight: 600; font-size: 14px; margin-bottom: 4px; }
+.in { width: 100%; background: var(--bg); border: 1px solid var(--line); border-radius: 12px; padding: 11px 12px; }
+.in.code { direction: ltr; text-align: center; font-size: 24px; letter-spacing: 0.4em; font-weight: 600; }
+.in[type="tel"] { direction: ltr; text-align: end; }
+.checks { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.chk { display: flex; align-items: center; gap: 8px; border: 1px solid var(--line); border-radius: 12px; padding: 8px 10px; background: var(--bg); font-size: 14px; }
+.chk input { width: 18px; height: 18px; accent-color: var(--tea); }
+.gerr { color: var(--tea); font-size: 13px; margin: 0; min-height: 1.2em; }
+.gnote { color: var(--ink-2); font-size: 13px; margin: 0; }
+.big-code { font-family: var(--font-display); font-size: 44px; letter-spacing: 0.25em; direction: ltr; text-align: center; color: var(--tea); background: var(--surface-2); border-radius: 14px; padding: 6px; }
+
+/* share tab */
+.shr { background: var(--surface); border: 1px solid var(--line); border-radius: 20px; padding: 16px; display: grid; gap: 12px; margin-top: 6px; }
+.shr h3 { margin: 0; font-family: var(--font-display); font-weight: 400; font-size: 24px; line-height: 1.3; }
+.shr p { margin: 0; color: var(--ink-2); font-size: 14px; }
+.qrbox { justify-self: center; width: min(240px, 100%); background: #FFFFFF; border-radius: 14px; padding: 10px; }
+.qrbox svg { display: block; width: 100%; height: auto; }
+.linkrow { display: flex; gap: 8px; align-items: center; }
+.linkrow .lk { flex: 1; min-width: 0; direction: ltr; text-align: start; background: var(--bg); border: 1px solid var(--line); border-radius: 12px; padding: 9px 10px; font-size: 13px; overflow-wrap: anywhere; user-select: all; }
+.msg { width: 100%; background: var(--bg); border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; min-height: 96px; resize: none; }
+.tips { margin: 0; padding-inline-start: 18px; color: var(--ink-2); font-size: 14px; display: grid; gap: 4px; }
+.sm { background: var(--surface-2); border: 0; border-radius: 10px; padding: 8px 14px; font-weight: 500; flex: none; }
+
+/* tabs */
+.tabs { position: fixed; inset-inline: 0; bottom: 0; background: var(--surface); border-top: 1px solid var(--line); z-index: 6;
+  padding: 8px max(16px, env(safe-area-inset-left, 0px)) calc(8px + env(safe-area-inset-bottom, 0px)) max(16px, env(safe-area-inset-right, 0px)); }
+.tabs-in { max-width: 560px; margin-inline: auto; display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; }
+.tab { background: transparent; border: 0; border-radius: 12px; padding: 8px 2px; display: grid; justify-items: center; gap: 2px; color: var(--ink-2); font-size: 13px; font-weight: 500; position: relative; }
+.tab[aria-current="page"] { color: var(--tea); background: var(--surface-2); font-weight: 600; }
+.tab .badge { position: absolute; top: 6px; left: calc(50% + 8px); width: 9px; height: 9px; border-radius: 50%; background: var(--tea); }
+</style>
+</head>
+<body>
+<script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js"></script>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <symbol id="i-glass" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M7 6h10l-1.1 5.2c-.3 1.4-.3 2.4 0 3.3L17 18H7l1.1-3.5c.3-.9.3-1.9 0-3.3z"/>
+      <path d="M5 21h14"/>
+      <path d="M10 2.5c-.6.8.6 1.3 0 2.2M14 2.5c-.6.8.6 1.3 0 2.2"/>
+    </symbol>
+    <symbol id="i-inbox" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M4 13l2.5-7h11L20 13v6H4z"/><path d="M4 13h5l1 2h4l1-2h5"/>
+    </symbol>
+    <symbol id="i-snd" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M4 9.5h3.5L12 6v12l-4.5-3.5H4z"/><path d="M15.5 9a4 4 0 0 1 0 6M18 6.5a7.5 7.5 0 0 1 0 11"/>
+    </symbol>
+    <symbol id="i-mute" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M4 9.5h3.5L12 6v12l-4.5-3.5H4z"/><path d="M16 9.5l5 5M21 9.5l-5 5"/>
+    </symbol>
+    <symbol id="i-share" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+      <rect x="4" y="4" width="6" height="6" rx="1"/><rect x="14" y="4" width="6" height="6" rx="1"/><rect x="4" y="14" width="6" height="6" rx="1"/><path d="M14 14h2.5v2.5H14zM19 14v1M14 19h1M17.5 19H20v1"/>
+    </symbol>
+    <symbol id="i-sum" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M5 20V10M12 20V4M19 20v-7"/>
+    </symbol>
+  </defs>
+</svg>
+
+<div class="app" id="app" dir="rtl" lang="ar">
+  <header class="top">
+    <div class="brand"><svg class="ico"><use href="#i-glass"/></svg><span>شايچي</span></div>
+    <div class="me" id="me">أبو أحمد · حي الزهور</div>
+    <button class="snd" id="snd" data-act="snd" aria-pressed="true" aria-label="الصوت شغال"></button>
+  </header>
+
+  <main id="v-orders">
+    <p class="demo-note" id="sndhint" style="margin: 6px 2px 0">اضغط أي مكان بالشاشة مرة وحدة حتى يشتغل صوت التنبيه. الصوت يشتغل والتطبيق مفتوح.</p>
+    <section id="avail"></section>
+    <div id="incoming"></div>
+    <div id="collect"></div>
+    <div id="active"></div>
+    <button class="btn-line test" id="demo">أرسل طلب تجريبي</button>
+    <button class="btn-line test" data-act="test" style="margin-top:8px">جرّب الصوت</button>
+    <p class="demo-note">إذا ما سمعت شي: تأكد الجوال مو على صامت وارفع صوت الوسائط.</p>
+    <p class="demo-note">الطلبات هنا أمثلة تجريبية. بالنسخة الحقيقية توصلك من تطبيق الزبون. تنبيه لمّ الاستكانات يجي هنا بعد ٤٥ ثانية من التسليم للتجربة، وبالنسخة الحقيقية تحدد المدة.</p>
+  </main>
+
+  <main id="v-menu" hidden></main>
+  <main id="v-share" hidden></main>
+  <main id="v-today" hidden></main>
+
+  <nav class="tabs" aria-label="التنقل"><div class="tabs-in">
+    <button class="tab" id="t-orders" data-tab="orders" aria-current="page"><svg class="ico"><use href="#i-inbox"/></svg>الطلبات<span class="badge" id="badge" hidden></span></button>
+    <button class="tab" id="t-menu" data-tab="menu"><svg class="ico"><use href="#i-glass"/></svg>مشاريبي</button>
+    <button class="tab" id="t-share" data-tab="share"><svg class="ico"><use href="#i-share"/></svg>إعلاني</button>
+    <button class="tab" id="t-today" data-tab="today"><svg class="ico"><use href="#i-sum"/></svg>اليوم</button>
+  </div></nav>
+
+  <div class="gate" id="gate" hidden>
+    <div class="gate-in">
+      <div class="brand"><svg class="ico"><use href="#i-glass"/></svg><span>شايچي</span></div>
+      <p class="gnote">تطبيق الچايچية. الطلبات توصلك هنا وتقبلها بضغطة.</p>
+      <div class="seg" role="group" aria-label="الدخول">
+        <button id="g-in" data-act="g-in" aria-pressed="true">دخول</button>
+        <button id="g-join" data-act="g-join" aria-pressed="false">طلب انضمام</button>
+      </div>
+
+      <form class="gform" id="f-login" novalidate>
+        <div><label class="fl" for="code">كود الدخول</label><input class="in code" id="code" inputmode="numeric" maxlength="4" placeholder="٠٠٠٠" autocomplete="off"></div>
+        <p class="gerr" id="e-login" role="alert"></p>
+        <button class="btn" type="submit">ادخل</button>
+        <p class="gnote">الكود يعطيك إياه صاحب التطبيق. للتجربة الكود: 1234</p>
+      </form>
+
+      <form class="gform" id="f-join" novalidate hidden>
+        <div><label class="fl" for="j-name">اسمك</label><input class="in" id="j-name" maxlength="30" placeholder="مثال: أبو أحمد" autocomplete="off"></div>
+        <div><label class="fl" for="j-phone">رقم جوالك</label><input class="in" id="j-phone" type="tel" inputmode="tel" maxlength="14" placeholder="07701234567" autocomplete="off"></div>
+        <div><label class="fl" for="j-zone">المنطقة اللي تشتغل بيها</label><select class="in" id="j-zone"></select></div>
+        <div><span class="fl" style="display:block;font-weight:600;font-size:14px;margin-bottom:4px">المشاريب اللي عندك</span><div class="checks" id="j-drinks"></div></div>
+        <p class="gerr" id="e-join" role="alert"></p>
+        <button class="btn" type="submit">ارسل طلب الانضمام</button>
+      </form>
+
+      <div class="gform" id="g-wait" hidden></div>
+    </div>
+  </div>
+</div>
+
+<script>
+document.documentElement.dir = 'rtl';
+document.documentElement.lang = 'ar';
+
+var WHERE = ['قدام بوابة الجامعة', 'جنب سوق الزهور', 'قدام مدرسة المثنى', 'عند الدورة الرئيسية', 'جنب الجامع الكبير', 'قدام باب المستشفى'];
+var MENU = [
+  { id: 'glass', n: 'استكان چاي', p: 250, on: true },
+  { id: 'milk', n: 'چاي بالحليب', p: 500, on: true },
+  { id: 'mint', n: 'چاي بالنعناع', p: 500, on: false },
+  { id: 'coffee', n: 'قهوة', p: 500, on: false }
+];
+var WAIT = 45;
+var COLLECT_AFTER = 45; /* seconds after delivery before the "go collect the glasses" alert; short here so the demo shows it quickly */
+
+var online = true, orders = [], missed = 0, seq = 0, tab = 'orders';
+function enabled() { return MENU.filter(function (m) { return m.on; }); }
+
+/* sound: a double ding for each new request, repeated every 6 seconds until it is answered. Browsers only allow audio after the first tap. */
+var soundOn = true;
+try { if (localStorage.getItem('chaychi-seller-snd') === 'off') soundOn = false; } catch (e) {}
+var PATTERNS = {
+  'new': { f: [880, 1175, 880, 1175], g: 0.2, d: 0.32, v: 0.7 },
+  collect: { f: [784, 988, 1175], g: 0.2, d: 0.4, v: 0.7 }
+};
+var VIBE = { 'new': [300, 150, 300], collect: [200, 100, 200, 100, 200] };
+var AC = null, AUD = null, WAVS = {};
+/* sounds are built as small WAV files and played through an audio element, which phones treat as media (it plays even when ring/silent rules mute Web Audio). Web Audio stays as a fallback. */
+function wav(freqs, gap, dur, vol) {
+  var rate = 22050, n = Math.floor(rate * (gap * (freqs.length - 1) + dur)), f32 = new Float32Array(n);
+  freqs.forEach(function (f, k) {
+    var start = Math.floor(k * gap * rate), len = Math.floor(dur * rate);
+    for (var i = 0; i < len && start + i < n; i++) {
+      var t = i / rate, env = Math.min(1, i / (rate * 0.01)) * Math.exp(-3.5 * t / dur);
+      f32[start + i] += Math.sin(2 * Math.PI * f * t) * env * vol;
+    }
+  });
+  var bytes = new Uint8Array(44 + n * 2), dv = new DataView(bytes.buffer);
+  function str(o, s) { for (var i = 0; i < s.length; i++) bytes[o + i] = s.charCodeAt(i); }
+  str(0, 'RIFF'); dv.setUint32(4, 36 + n * 2, true); str(8, 'WAVE'); str(12, 'fmt ');
+  dv.setUint32(16, 16, true); dv.setUint16(20, 1, true); dv.setUint16(22, 1, true);
+  dv.setUint32(24, rate, true); dv.setUint32(28, rate * 2, true); dv.setUint16(32, 2, true); dv.setUint16(34, 16, true);
+  str(36, 'data'); dv.setUint32(40, n * 2, true);
+  for (var j = 0; j < n; j++) dv.setInt16(44 + j * 2, Math.max(-1, Math.min(1, f32[j])) * 32767, true);
+  var bin = '';
+  for (var q = 0; q < bytes.length; q++) bin += String.fromCharCode(bytes[q]);
+  return 'data:audio/wav;base64,' + btoa(bin);
+}
+function uri(kind) {
+  if (!WAVS[kind]) {
+    var p = kind === 'silent' ? { f: [440], g: 0, d: 0.05, v: 0 } : PATTERNS[kind];
+    WAVS[kind] = wav(p.f, p.g, p.d, p.v);
+  }
+  return WAVS[kind];
+}
+function unlock() {
+  try {
+    if (!AC) AC = new (window.AudioContext || window.webkitAudioContext)();
+    if (AC.state === 'suspended') AC.resume();
+  } catch (e) {}
+  try {
+    if (!AUD) {
+      AUD = new Audio();
+      AUD.src = uri('silent');
+      var pr = AUD.play();
+      if (pr && pr.then) pr.then(function () { AUD.pause(); }).catch(function () {});
+    }
+  } catch (e) {}
+  var h = document.getElementById('sndhint'); if (h) h.hidden = true;
+}
+['pointerdown', 'touchend', 'click', 'keydown'].forEach(function (ev) { document.addEventListener(ev, unlock); });
+function tone(f, at, d) {
+  if (!AC) return;
+  var o = AC.createOscillator(), g = AC.createGain(), t = AC.currentTime + at;
+  o.type = 'sine'; o.frequency.value = f;
+  g.gain.setValueAtTime(0.0001, t);
+  g.gain.exponentialRampToValueAtTime(0.5, t + 0.02);
+  g.gain.exponentialRampToValueAtTime(0.0001, t + d);
+  o.connect(g); g.connect(AC.destination);
+  o.start(t); o.stop(t + d + 0.05);
+}
+function beep(kind) {
+  var p = PATTERNS[kind];
+  if (!p || !AC) return;
+  p.f.forEach(function (f, i) { tone(f, i * p.g, p.d); });
+}
+function chime(kind) {
+  try { if (navigator.vibrate) navigator.vibrate(VIBE[kind] || 120); } catch (e) {}
+  if (!soundOn) return;
+  var played = false;
+  try {
+    if (AUD) {
+      AUD.src = uri(kind);
+      AUD.currentTime = 0;
+      var pr = AUD.play();
+      if (pr && pr.catch) pr.catch(function () { beep(kind); });
+      played = true;
+    }
+  } catch (e) {}
+  if (!played) beep(kind);
+}
+function renderSnd() {
+  var b = document.getElementById('snd');
+  b.setAttribute('aria-pressed', String(soundOn));
+  b.setAttribute('aria-label', soundOn ? 'الصوت شغال' : 'الصوت مغلق');
+  b.innerHTML = '<svg class="ico"><use href="#' + (soundOn ? 'i-snd' : 'i-mute') + '"/></svg>';
+}
+function toggleSound() {
+  soundOn = !soundOn;
+  try { localStorage.setItem('chaychi-seller-snd', soundOn ? 'on' : 'off'); } catch (e) {}
+  renderSnd();
+  if (soundOn) chime();
+}
+
+function $(id) { return document.getElementById(id); }
+function ar(n) { return String(n).replace(/\d/g, function (d) { return '٠١٢٣٤٥٦٧٨٩'[d]; }); }
+function money(n) { return ar(String(n).replace(/\B(?=(\d{3})+(?!\d))/g, ',')).replace(/,/g, '٬') + ' د.ع'; }
+function dist(m) { return m < 1000 ? ar(m) + ' م' : ar((m / 1000).toFixed(1)).replace('.', '٫') + ' كم'; }
+function pickOne(a) { return a[Math.floor(Math.random() * a.length)]; }
+function glass(cls) { return '<svg class="' + (cls || 'ico') + '"><use href="#i-glass"/></svg>'; }
+function clock() { var d = new Date(); return ar(('0' + d.getHours()).slice(-2)) + ':' + ar(('0' + d.getMinutes()).slice(-2)); }
+
+function makeOrder(where) {
+  var pool = enabled(), lines = [];
+  var count = Math.min(pool.length, 1 + Math.floor(Math.random() * 2));
+  for (var i = 0; i < count; i++) {
+    var m = pool.splice(Math.floor(Math.random() * pool.length), 1)[0];
+    lines.push({ n: m.n, q: 1 + Math.floor(Math.random() * 3), p: m.p });
+  }
+  var total = lines.reduce(function (t, l) { return t + l.q * l.p; }, 0);
+  var qty = lines.reduce(function (t, l) { return t + l.q; }, 0);
+  return { id: ++seq, where: where || pickOne(WHERE), m: 100 + Math.floor(Math.random() * 8) * 60, lines: lines, total: total, qty: qty, pay: Math.random() < 0.5 ? 'now' : 'later', secs: WAIT, status: 'new', at: '' };
+}
+function count(st) { return orders.filter(function (o) { return o.status === st; }).length; }
+function list(st) { return orders.filter(function (o) { return o.status === st; }); }
+
+function linesHtml(o) {
+  return '<ul class="lines">' + o.lines.map(function (l) { return '<li><span>' + ar(l.q) + ' × ' + l.n + '</span><span>' + money(l.q * l.p) + '</span></li>'; }).join('') + '</ul>';
+}
+
+function renderAvail() {
+  $('avail').innerHTML = '<div class="avail' + (online ? ' on' : '') + '">' + glass('deco') +
+    '<div class="eyebrow">حالتك الحين</div>' +
+    '<div class="st">' + (online ? 'متاح للطلبات' : 'مو متاح') + '</div>' +
+    '<p>' + (online ? 'الزبائن بمنطقتك يشوفونك ويطلبون منك.' : 'ما راح توصلك طلبات لين ترجع متاح.') + '</p>' +
+    '<button class="btn-inv" data-act="toggle">' + (online ? 'وقّف الطلبات' : 'ابدأ استقبال الطلبات') + '</button></div>';
+}
+
+function renderIncoming() {
+  var inc = list('new');
+  var html = '<h2>طلبات جديدة' + (inc.length ? '<span class="n">' + ar(inc.length) + '</span>' : '') + '</h2>';
+  if (!inc.length) {
+    html += '<div class="empty">' + glass() + '<strong>' + (online ? 'ننتظر طلب جديد' : 'أنت مو متاح') + '</strong><p>' +
+      (online ? 'أول ما أحد يطلب بمنطقتك يطلع هنا.' : 'شغّل الاستقبال حتى توصلك الطلبات.') + '</p></div>';
+  } else {
+    html += '<div class="cards">' + inc.map(function (o) {
+      return '<div class="card"><div class="row"><div><div class="where" data-w="' + o.id + '"></div><div class="meta">يبعد عنك ' + dist(o.m) + '</div>' + payPill(o) + '</div>' +
+        '<div class="timer' + (o.secs <= 10 ? ' low' : '') + '" data-t="' + o.id + '">' + ar(o.secs) + '</div></div>' +
+        linesHtml(o) + '<div class="row tot"><span>المجموع</span><span>' + money(o.total) + '</span></div>' +
+        '<div class="btns"><button class="btn" data-act="accept" data-id="' + o.id + '">اقبل</button>' +
+        '<button class="btn-line" data-act="reject" data-id="' + o.id + '">ارفض</button></div></div>';
+    }).join('') + '</div>';
+  }
+  $('incoming').innerHTML = html;
+  inc.forEach(function (o) { var el = document.querySelector('[data-w="' + o.id + '"]'); if (el) el.textContent = o.where; });
+}
+
+function renderActive() {
+  var act = orders.filter(function (o) { return o.status === 'accepted' || o.status === 'onway'; });
+  if (!act.length) { $('active').innerHTML = ''; return; }
+  $('active').innerHTML = '<h2>طلباتك الحالية<span class="n">' + ar(act.length) + '</span></h2><div class="cards">' + act.map(function (o) {
+    var onway = o.status === 'onway';
+    return '<div class="card"><div class="row"><div><div class="where" data-a="' + o.id + '"></div><div class="meta">يبعد عنك ' + dist(o.m) + '</div>' + payPill(o) + '</div>' +
+      '<span class="pill ' + (onway ? 'ok' : 'busy') + '">' + (onway ? 'بالطريق' : 'جاهز تطلع') + '</span></div>' +
+      linesHtml(o) + '<div class="row tot"><span>المجموع</span><span>' + money(o.total) + '</span></div>' +
+      '<div class="btns">' + (onway
+        ? '<button class="btn-ok" data-act="deliver" data-id="' + o.id + '">' + (o.pay === 'now' ? 'سلّمت واستلمت المبلغ' : 'سلّمت الطلب') + '</button>'
+        : '<button class="btn" data-act="go" data-id="' + o.id + '">طلعت للزبون</button>') + '</div></div>';
+  }).join('') + '</div>';
+  act.forEach(function (o) { var el = document.querySelector('[data-a="' + o.id + '"]'); if (el) el.textContent = o.where; });
+}
+
+function num(n) { return ar(String(n).replace(/\B(?=(\d{3})+(?!\d))/g, ',')).replace(/,/g, '٬'); }
+function fmt(sec) { return ar(Math.floor(sec / 60)) + ':' + ar(('0' + (sec % 60)).slice(-2)); }
+function dueCount() { return list('collect').filter(function (o) { return o.due; }).length; }
+function payPill(o) {
+  return '<div style="margin-top:4px"><span class="pill ' + (o.pay === 'now' ? 'ok' : 'busy') + '">' +
+    (o.pay === 'now' ? 'الدفع عند التسليم' : 'الدفع وقت لمّ الاستكانات') + '</span></div>';
+}
+
+/* after delivery: pay-now orders are finished; pay-later orders wait for the seller to come back for the empty glasses and the money */
+function deliver(id) {
+  orders.forEach(function (o) {
+    if (o.id !== id) return;
+    if (o.pay === 'now') { o.status = 'done'; o.at = clock(); }
+    else { o.status = 'collect'; o.cd = COLLECT_AFTER; o.due = false; }
+  });
+  renderAll();
+}
+
+function renderCollect() {
+  var col = list('collect');
+  if (!col.length) { $('collect').innerHTML = ''; return; }
+  $('collect').innerHTML = '<h2>لمّ الاستكانات والمبلغ<span class="n">' + ar(col.length) + '</span></h2><div class="cards">' + col.map(function (o) {
+    return '<div class="card' + (o.due ? ' due' : '') + '"><div class="row"><div><div class="where" data-c="' + o.id + '"></div>' +
+      '<div class="meta">لمّ ' + ar(o.qty) + ' استكان واستلم ' + money(o.total) + '</div></div>' +
+      (o.due ? '<span class="pill busy">حان وقت اللمّ</span>' : '<div class="timer" data-cd="' + o.id + '">' + fmt(o.cd) + '</div>') + '</div>' +
+      '<div class="btns"><button class="btn-ok" data-act="collected" data-id="' + o.id + '">لمّيت واستلمت المبلغ</button>' +
+      '<button class="btn-line" data-act="noshow" data-id="' + o.id + '">ما لقيت الزبون</button></div></div>';
+  }).join('') + '</div>';
+  col.forEach(function (o) { var el = document.querySelector('[data-c="' + o.id + '"]'); if (el) el.textContent = o.where; });
+}
+
+function renderToday() {
+  var done = list('done'), unpaid = list('unpaid'), wait = list('collect');
+  var sum = done.reduce(function (t, o) { return t + o.total; }, 0);
+  var owed = wait.reduce(function (t, o) { return t + o.total; }, 0);
+  var rows = orders.filter(function (o) { return o.status === 'done' || o.status === 'unpaid'; });
+  var html = '<div class="stats"><div class="stat"><span>طلبات خلصت</span><b>' + ar(done.length) + '</b></div>' +
+    '<div class="stat"><span>مبلغ استلمته</span><b>' + num(sum) + '<small>د.ع</small></b></div>' +
+    '<div class="stat wide"><span>باقي لك عند الزبائن</span><b>' + num(owed) + '<small>د.ع</small></b></div></div>' +
+    '<div class="missed">' + (missed ? 'فاتتك ' + ar(missed) + ' طلب انتهى وقته. ' : 'ما فاتك ولا طلب. ') + (unpaid.length ? ar(unpaid.length) + ' زبون ما دفع.' : '') + '</div>' +
+    '<h2>سجل اليوم</h2>';
+  if (!rows.length) {
+    html += '<div class="empty">' + glass() + '<strong>ماكو طلبات خالصة</strong><p>أول طلب تسلّمه وتستلم مبلغه يظهر هنا.</p></div>';
+  } else {
+    html += '<div class="hist">' + rows.slice().reverse().map(function (o) {
+      return '<div class="card"><div><div class="where" data-h="' + o.id + '"></div><div class="meta">' + o.at + ' · ' + ar(o.qty) + ' مشروب</div></div>' +
+        '<div class="tot">' + (o.status === 'unpaid' ? '<span class="pill busy">ما دفع</span>' : money(o.total)) + '</div></div>';
+    }).join('') + '</div>';
+  }
+  $('v-today').innerHTML = html;
+  rows.forEach(function (o) { var el = document.querySelector('[data-h="' + o.id + '"]'); if (el) el.textContent = o.where; });
+}
+
+function renderMenu() {
+  var any = enabled().length > 0;
+  $('v-menu').innerHTML = '<h2>المشاريب اللي عندك</h2>' +
+    (any ? '' : '<div class="empty" style="margin-bottom:10px"><strong>ماكو مشروب مفعّل</strong><p>فعّل مشروب واحد على الأقل حتى تستقبل طلبات.</p></div>') +
+    '<div class="mlist">' + MENU.map(function (m) {
+      return '<div class="mrow' + (m.on ? '' : ' off') + '"><div class="t">' + m.n + '</div>' +
+        '<button class="sw" role="switch" aria-checked="' + m.on + '" aria-label="' + m.n + '" data-act="mon" data-m="' + m.id + '"></button>' +
+        '<div class="pr"><button data-act="pm" data-m="' + m.id + '" aria-label="نقّص سعر ' + m.n + '">−</button><output>' + money(m.p) + '</output>' +
+        '<button data-act="pp" data-m="' + m.id + '" aria-label="زيّد سعر ' + m.n + '">+</button></div></div>';
+    }).join('') + '</div>' +
+    '<p class="demo-note">الزبون يشوف بس المشاريب المفعّلة عندك، وبأسعارك.</p>';
+}
+function drinkById(id) { return MENU.filter(function (m) { return m.id === id; })[0]; }
+function toggleDrink(id) {
+  var m = drinkById(id);
+  if (!m) return;
+  m.on = !m.on;
+  if (!enabled().length) { online = false; orders = orders.filter(function (o) { return o.status !== 'new'; }); }
+  renderAll();
+}
+function stepPrice(id, d) {
+  var m = drinkById(id);
+  if (!m) return;
+  m.p = Math.max(250, Math.min(5000, m.p + d));
+  renderMenu();
+}
+
+function renderAll() {
+  renderAvail(); renderIncoming(); renderCollect(); renderActive(); renderToday(); renderMenu();
+  $('badge').hidden = count('new') + dueCount() === 0;
+}
+
+function go(t) {
+  tab = t;
+  $('v-orders').hidden = t !== 'orders';
+  $('v-menu').hidden = t !== 'menu';
+  $('v-share').hidden = t !== 'share';
+  $('v-today').hidden = t !== 'today';
+  $('t-orders').setAttribute('aria-current', t === 'orders' ? 'page' : 'false');
+  $('t-menu').setAttribute('aria-current', t === 'menu' ? 'page' : 'false');
+  $('t-share').setAttribute('aria-current', t === 'share' ? 'page' : 'false');
+  if (t === 'share') renderShare();
+  $('t-today').setAttribute('aria-current', t === 'today' ? 'page' : 'false');
+  window.scrollTo(0, 0);
+}
+
+function setStatus(id, st) {
+  orders.forEach(function (o) {
+    if (o.id === id) { o.status = st; if (st === 'done' || st === 'unpaid') o.at = clock(); }
+  });
+  renderAll();
+}
+
+document.addEventListener('click', function (e) {
+  var t = e.target.closest('[data-act],[data-tab]');
+  if (!t) return;
+  if (t.dataset.tab) { go(t.dataset.tab); return; }
+  var a = t.dataset.act, id = Number(t.dataset.id);
+  if (a === 'toggle') {
+    if (!online && !enabled().length) { go('menu'); return; }
+    online = !online;
+    if (!online) { orders = orders.filter(function (o) { return o.status !== 'new'; }); }
+    renderAll();
+  }
+  else if (a === 'accept') setStatus(id, 'accepted');
+  else if (a === 'reject') { orders = orders.filter(function (o) { return o.id !== id; }); renderAll(); }
+  else if (a === 'go') setStatus(id, 'onway');
+  else if (a === 'deliver') deliver(id);
+  else if (a === 'collected') setStatus(id, 'done');
+  else if (a === 'noshow') setStatus(id, 'unpaid');
+  else if (a === 'mon') toggleDrink(t.dataset.m);
+  else if (a === 'pm') stepPrice(t.dataset.m, -250);
+  else if (a === 'pp') stepPrice(t.dataset.m, 250);
+  else if (a === 'snd') toggleSound();
+  else if (a === 'test') { unlock(); chime('new'); }
+  else if (a === 'g-in') gateTab('in');
+  else if (a === 'g-join') gateTab('join');
+  else if (a === 'copy') copyText(t.dataset.src, t);
+  else if (a === 'logout') logout();
+  else if (a === 'approve') approveDemo();
+  else if (a === 'enter') enterAfterApproval();
+  else if (a === 'back') backToGate();
+});
+$('demo').addEventListener('click', function () {
+  if (!enabled().length) { go('menu'); return; }
+  online = true;
+  orders.push(makeOrder());
+  chime();
+  renderAll();
+  go('orders');
+});
+
+/* countdown: each new request has 45 seconds before it expires */
+setInterval(function () {
+  var changed = false;
+  orders.forEach(function (o) {
+    if (o.status === 'new') { o.secs -= 1; if (o.secs <= 0) { o.status = 'expired'; missed += 1; changed = true; } }
+  });
+  orders.forEach(function (o) {
+    if (o.status === 'collect' && !o.due) { o.cd -= 1; if (o.cd <= 0) { o.due = true; chime('collect'); changed = true; } }
+  });
+  if (changed) { orders = orders.filter(function (o) { return o.status !== 'expired'; }); renderAll(); return; }
+  list('new').forEach(function (o) {
+    var el = document.querySelector('[data-t="' + o.id + '"]');
+    if (el) { el.textContent = ar(o.secs); el.className = 'timer' + (o.secs <= 10 ? ' low' : ''); }
+  });
+  list('collect').forEach(function (o) {
+    var el = document.querySelector('[data-cd="' + o.id + '"]');
+    if (el) el.textContent = fmt(o.cd);
+  });
+}, 1000);
+
+/* example flow: a new request arrives every 30 seconds while available */
+setInterval(function () {
+  if (online && enabled().length && count('new') < 3) { orders.push(makeOrder()); chime(); renderAll(); }
+}, 30000);
+
+/* keep ringing while a request is waiting */
+setInterval(function () {
+  if (online && count('new') > 0) chime('new');
+  else if (dueCount() > 0) chime('collect');
+}, 6000);
+
+/* ---------- login, join request, share ---------- */
+var CUSTOMER_LINK = 'https://radhwanmalaah-sudo.github.io/chaychi/';
+var ZONE_NAMES = ['حي الزهور', 'حي الجامعة', 'الدواسة'];
+var CODES = { '1234': { name: 'أبو أحمد', zone: 'حي الزهور', on: ['glass', 'milk'] } };
+var who = null, pendingReq = null, issuedCode = '';
+
+function copyText(srcId, btn) {
+  var el = document.getElementById(srcId);
+  if (!el) return;
+  var text = el.value !== undefined && el.tagName === 'TEXTAREA' ? el.value : el.textContent;
+  var old = btn.getAttribute('data-label') || btn.textContent;
+  btn.setAttribute('data-label', old);
+  function done(ok) {
+    btn.textContent = ok ? 'تم النسخ' : 'حدده وانسخه';
+    setTimeout(function () { btn.textContent = old; }, 1600);
+  }
+  function fallback() {
+    try {
+      if (el.select) { el.select(); } else { var r = document.createRange(); r.selectNodeContents(el); var sel = window.getSelection(); sel.removeAllRanges(); sel.addRange(r); }
+    } catch (e) {}
+    done(false);
+  }
+  try {
+    navigator.clipboard.writeText(text).then(function () { done(true); }, fallback);
+  } catch (e) { fallback(); }
+}
+
+function renderShare() {
+  if (!who) return;
+  var qr = '';
+  try {
+    var q = qrcode(0, 'M'); q.addData(CUSTOMER_LINK); q.make();
+    qr = q.createSvgTag({ cellSize: 4, margin: 2, scalable: true });
+  } catch (e) { qr = ''; }
+  var msg = 'أهلاً، أني ' + who.name + ' چايچي بـ' + who.zone + '. اطلب الچاي لحد مكانك من تطبيق شايچي: ' + CUSTOMER_LINK;
+  $('v-share').innerHTML =
+    '<div class="shr"><h3>خلّي زبائنك يطلبون منك</h3><p>الزبون يمسح الكود أو يفتح الرابط، وبعدين يشوفك بقائمة الچايچية بمنطقتك.</p>' +
+    (qr ? '<div class="qrbox" role="img" aria-label="QR كود تطبيق الزبون">' + qr + '</div>' : '<p>تعذر رسم الكود، استخدم الرابط تحت.</p>') +
+    '<ul class="tips"><li>ألصق الكود على صينيتك أو عربتك بمكان واضح.</li><li>صوّر الشاشة واطبع الكود حتى يكون كبير.</li><li>قل لزبائنك المعتادين يطلبون منك من التطبيق.</li></ul></div>' +
+    '<div class="shr"><h3>رابط التطبيق</h3><div class="linkrow"><div class="lk" id="lk"></div><button class="sm" data-act="copy" data-src="lk">انسخ</button></div></div>' +
+    '<div class="shr"><h3>رسالة جاهزة للواتساب</h3><textarea class="msg" id="msgbox" readonly></textarea><div class="linkrow"><button class="sm" data-act="copy" data-src="msgbox">انسخ الرسالة</button></div></div>' +
+    '<div class="shr"><p>الرابط يفتح للزبائن بعد ما صاحب التطبيق ينشره.</p><button class="btn-line" data-act="logout">خروج من حسابي</button></div>';
+  $('lk').textContent = CUSTOMER_LINK;
+  $('msgbox').value = msg;
+}
+
+function gateTab(t) {
+  var login = t === 'in';
+  $('g-in').setAttribute('aria-pressed', String(login));
+  $('g-join').setAttribute('aria-pressed', String(!login));
+  $('f-login').hidden = !login;
+  $('f-join').hidden = login;
+  $('g-wait').hidden = true;
+  $('e-login').textContent = ''; $('e-join').textContent = '';
+}
+function backToGate() {
+  document.querySelector('.gate .seg').hidden = false;
+  gateTab('in');
+}
+
+function startSession(profile) {
+  who = profile;
+  try { localStorage.setItem('chaychi-seller-login', JSON.stringify(profile)); } catch (e) {}
+  MENU.forEach(function (m) { m.on = profile.on ? profile.on.indexOf(m.id) > -1 : m.on; });
+  $('me').textContent = profile.name + ' · ' + profile.zone;
+  orders = []; missed = 0; online = true;
+  orders.push(makeOrder('قدام بوابة الجامعة'));
+  orders.push(makeOrder('جنب سوق الزهور'));
+  orders[0].pay = 'later';
+  orders[1].pay = 'now';
+  orders[1].secs = 38;
+  $('gate').hidden = true;
+  go('orders');
+  renderAll();
+  renderShare();
+}
+function logout() {
+  who = null; online = false; orders = [];
+  try { localStorage.removeItem('chaychi-seller-login'); } catch (e) {}
+  $('code').value = '';
+  document.querySelector('.gate .seg').hidden = false;
+  gateTab('in');
+  $('gate').hidden = false;
+}
+
+$('f-login').addEventListener('submit', function (e) {
+  e.preventDefault();
+  var c = $('code').value.trim().replace(/[٠-٩]/g, function (d) { return '٠١٢٣٤٥٦٧٨٩'.indexOf(d); });
+  if (!/^\d{4}$/.test(c)) { $('e-login').textContent = 'اكتب الكود، أربع أرقام.'; return; }
+  if (!CODES[c]) { $('e-login').textContent = 'الكود غلط. اسأل صاحب التطبيق.'; return; }
+  startSession(CODES[c]);
+});
+
+$('j-zone').innerHTML = ZONE_NAMES.map(function (z) { return '<option>' + z + '</option>'; }).join('');
+$('j-drinks').innerHTML = MENU.map(function (m) {
+  return '<label class="chk"><input type="checkbox" value="' + m.id + '"' + (m.id === 'glass' ? ' checked' : '') + '>' + m.n + '</label>';
+}).join('');
+
+$('f-join').addEventListener('submit', function (e) {
+  e.preventDefault();
+  var name = $('j-name').value.trim(), phone = $('j-phone').value.trim().replace(/[\s-]/g, '');
+  var drinks = Array.prototype.map.call(document.querySelectorAll('#j-drinks input:checked'), function (i) { return i.value; });
+  var err = '';
+  if (!name) err = 'اكتب اسمك.';
+  else if (!/^\+?\d{9,14}$/.test(phone)) err = 'رقم الجوال لازم يكون أرقام فقط، مثال 07701234567.';
+  else if (!drinks.length) err = 'اختار مشروب واحد على الأقل.';
+  $('e-join').textContent = err;
+  if (err) return;
+  pendingReq = { name: name, phone: phone, zone: $('j-zone').value, on: drinks };
+  document.querySelector('.gate .seg').hidden = true;
+  $('f-login').hidden = true; $('f-join').hidden = true;
+  var w = $('g-wait'); w.hidden = false;
+  w.innerHTML = '<div class="brand" style="font-size:26px">وصل طلبك</div><p class="gnote">طلب انضمامك وصل لصاحب التطبيق. أول ما يوافق يعطيك كود الدخول.</p>' +
+    '<button class="btn-line" data-act="approve">تجربة: صاحب التطبيق وافق</button><button class="btn-line" data-act="back">رجوع</button>';
+});
+function approveDemo() {
+  var c;
+  do { c = String(1000 + Math.floor(Math.random() * 9000)); } while (CODES[c]);
+  CODES[c] = pendingReq; issuedCode = c;
+  $('g-wait').innerHTML = '<div class="brand" style="font-size:26px">تمت الموافقة</div><p class="gnote">هذا كود دخولك. احفظه.</p><div class="big-code" id="bigcode"></div>' +
+    '<button class="btn" data-act="enter">ادخل للتطبيق</button>';
+  $('bigcode').textContent = c;
+}
+function enterAfterApproval() { startSession(CODES[issuedCode]); }
+
+/* start: logged out unless a login was kept on this phone */
+online = false;
+renderSnd();
+var kept = null;
+try { kept = JSON.parse(localStorage.getItem('chaychi-seller-login') || 'null'); } catch (e) { kept = null; }
+if (kept && kept.name && kept.zone) { startSession(kept); }
+else { $('gate').hidden = false; gateTab('in'); }
+</script>
+</body>
+</html>

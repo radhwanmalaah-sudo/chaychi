@@ -1,0 +1,404 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#A6311A">
+<title>لوحة شايچي</title>
+<style>html{color-scheme:light}body{margin:0}img{max-width:100%}[hidden]{display:none!important}:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}</style>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;600&family=Lalezar&display=swap">
+<style>
+/* Layout: one phone-width column. Summary numbers first, then the list of ads with a status pill and view/click counts, then the add-ad form with a live preview of the card the customer sees. */
+:root {
+  --bg: #EEF1EE;
+  --surface: #FFFFFF;
+  --surface-2: #E3E9E5;
+  --ink: #17201D;
+  --ink-2: #52605B;
+  --line: #D1D9D4;
+  --tea: #A6311A;
+  --tea-ink: #FFFFFF;
+  --ok: #0E6B5F;
+  --ok-bg: #D5EEE8;
+  --busy: #7F5200;
+  --busy-bg: #F5E6C3;
+  --font-display: 'Lalezar', 'Segoe UI', Tahoma, sans-serif;
+  --font-body: 'IBM Plex Sans Arabic', 'Segoe UI', Tahoma, sans-serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0F1514; --surface: #172120; --surface-2: #1F2C2A; --ink: #E7EEEB; --ink-2: #9DB0AA;
+    --line: #2A3A37; --tea: #E5755A; --tea-ink: #1A0A06; --ok: #5CD0C0; --ok-bg: #12352F;
+    --busy: #E8B95A; --busy-bg: #3A2D10; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0F1514; --surface: #172120; --surface-2: #1F2C2A; --ink: #E7EEEB; --ink-2: #9DB0AA;
+  --line: #2A3A37; --tea: #E5755A; --tea-ink: #1A0A06; --ok: #5CD0C0; --ok-bg: #12352F;
+  --busy: #E8B95A; --busy-bg: #3A2D10; color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+body {
+  background: var(--bg); color: var(--ink); font-family: var(--font-body); font-size: 15px; line-height: 1.6;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 0 40px;
+}
+body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 10; background: var(--bg); }
+button, input, select, textarea { font: inherit; color: inherit; }
+button { cursor: pointer; }
+:focus-visible { outline: 3px solid var(--tea); outline-offset: 2px; }
+.app { max-width: 560px; margin-inline: auto; }
+.ico { width: 1.25em; height: 1.25em; flex: none; }
+
+.top { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5; background: var(--bg); display: flex; align-items: center; justify-content: space-between; gap: 12px; padding-block: 14px 10px; }
+.brand { display: flex; align-items: center; gap: 8px; font-family: var(--font-display); font-size: 28px; line-height: 1; color: var(--tea); white-space: nowrap; }
+.brand .ico { width: 30px; height: 30px; }
+.me { color: var(--ink-2); font-size: 13px; font-weight: 500; }
+
+h2 { font-size: 13px; font-weight: 600; letter-spacing: 0.04em; color: var(--ink-2); margin: 24px 0 10px; }
+
+.stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin-top: 6px; }
+.stat { background: var(--surface); border: 1px solid var(--line); border-radius: 16px; padding: 12px; }
+.stat span { display: block; color: var(--ink-2); font-size: 12px; line-height: 1.4; }
+.stat b { font-family: var(--font-display); font-weight: 400; font-size: 28px; line-height: 1.2; display: block; margin-top: 2px; font-variant-numeric: tabular-nums; }
+
+.cards { display: grid; gap: 10px; }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 18px; padding: 14px; display: grid; gap: 8px; }
+.card.dim { opacity: 0.7; }
+.row { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
+.card .shop { font-family: var(--font-display); font-size: 22px; line-height: 1.3; min-width: 0; overflow-wrap: anywhere; }
+.card .txt { margin: 0; font-size: 14px; overflow-wrap: anywhere; }
+.card .meta { color: var(--ink-2); font-size: 13px; display: flex; flex-wrap: wrap; gap: 2px 12px; }
+.card .meta .ltr { direction: ltr; unicode-bidi: isolate; }
+.pill { display: inline-block; flex: none; font-size: 12px; font-weight: 600; padding: 1px 10px; border-radius: 999px; }
+.pill.ok { background: var(--ok-bg); color: var(--ok); }
+.pill.busy { background: var(--busy-bg); color: var(--busy); }
+.pill.off { background: var(--surface-2); color: var(--ink-2); }
+.nums { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; border-top: 1px solid var(--line); padding-top: 8px; }
+.nums div { font-size: 12px; color: var(--ink-2); line-height: 1.4; }
+.nums b { display: block; font-size: 17px; color: var(--ink); font-variant-numeric: tabular-nums; }
+.btns { display: flex; gap: 8px; flex-wrap: wrap; }
+.btn { background: var(--tea); color: var(--tea-ink); border: 0; border-radius: 12px; padding: 11px 18px; font-weight: 600; }
+.btn-line { background: transparent; color: var(--ink); border: 1px solid var(--line); border-radius: 12px; padding: 8px 14px; font-weight: 500; font-size: 14px; }
+.btn-line.danger { color: var(--tea); border-color: var(--tea); }
+.empty { background: var(--surface); border: 1px solid var(--line); border-radius: 18px; padding: 22px 18px; text-align: center; color: var(--ink-2); display: grid; gap: 4px; justify-items: center; }
+.empty strong { font-family: var(--font-display); font-weight: 400; font-size: 22px; color: var(--ink); }
+.empty p { margin: 0; font-size: 14px; }
+.note { color: var(--ink-2); font-size: 12px; margin: 10px 2px 0; }
+
+/* tabs, sellers */
+.ptabs { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; background: var(--surface-2); border-radius: 14px; padding: 4px; margin-top: 4px; }
+.ptabs button { border: 0; background: transparent; border-radius: 10px; padding: 9px 4px; font-weight: 500; color: var(--ink-2); position: relative; }
+.ptabs button[aria-pressed="true"] { background: var(--surface); color: var(--tea); font-weight: 600; }
+.ptabs .bd { display: inline-block; min-width: 18px; margin-inline-start: 4px; padding: 0 5px; border-radius: 999px; background: var(--tea); color: var(--tea-ink); font-size: 11px; line-height: 18px; }
+.codeb { font-family: var(--font-display); font-size: 26px; letter-spacing: 0.2em; direction: ltr; color: var(--tea); background: var(--surface-2); border-radius: 10px; padding: 0 12px; line-height: 1.5; flex: none; }
+.chips { display: flex; flex-wrap: wrap; gap: 4px; }
+.chips span { font-size: 12px; background: var(--surface-2); color: var(--ink-2); border-radius: 999px; padding: 0 9px; }
+.invite { background: var(--surface); border: 2px solid var(--ok); border-radius: 18px; padding: 14px; display: grid; gap: 10px; margin-top: 12px; }
+.invite h3 { margin: 0; font-family: var(--font-display); font-weight: 400; font-size: 22px; line-height: 1.3; }
+.invite textarea { width: 100%; background: var(--bg); border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; min-height: 92px; resize: none; }
+.btn-ok { background: var(--ok); color: var(--surface); border: 0; border-radius: 12px; padding: 8px 16px; font-weight: 600; font-size: 14px; }
+
+/* form */
+form { background: var(--surface); border: 1px solid var(--line); border-radius: 20px; padding: 16px; display: grid; gap: 12px; }
+.f label { display: block; font-weight: 600; font-size: 14px; margin-bottom: 4px; }
+.in { width: 100%; background: var(--bg); border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; }
+.in[type="tel"] { direction: ltr; text-align: end; }
+textarea.in { resize: vertical; min-height: 64px; }
+.two { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+.cnt { color: var(--ink-2); font-size: 12px; margin-top: 2px; }
+.err { color: var(--tea); font-size: 13px; margin: 0; min-height: 1.2em; }
+.preview-h { font-size: 12px; font-weight: 600; color: var(--ink-2); margin: 4px 0 0; }
+.pv { background: var(--bg); border: 1px solid var(--line); border-radius: 16px; padding: 12px 14px; display: grid; gap: 4px; }
+.pv .tag { font-size: 11px; font-weight: 600; color: var(--ink-2); border: 1px solid var(--line); border-radius: 6px; padding: 0 6px; justify-self: start; }
+.pv .shop { font-family: var(--font-display); font-size: 22px; line-height: 1.3; color: var(--tea); overflow-wrap: anywhere; }
+.pv p { margin: 0; overflow-wrap: anywhere; }
+.pv .ph { margin-top: 4px; padding-top: 8px; border-top: 1px solid var(--line); font-weight: 600; direction: ltr; text-align: end; }
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <symbol id="i-mega" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M4 10v4h3l8 4V6L7 10z"/><path d="M18 9.5a3.5 3.5 0 0 1 0 5"/><path d="M7 14l1 5h2.5l-.8-4"/>
+    </symbol>
+  </defs>
+</svg>
+
+<div class="app" dir="rtl" lang="ar">
+  <header class="top">
+    <div class="brand"><svg class="ico"><use href="#i-mega"/></svg><span>لوحة شايچي</span></div>
+    <div class="me">لوحة صاحب التطبيق</div>
+  </header>
+
+  <nav class="ptabs" aria-label="الأقسام">
+    <button data-act="tab" data-tab="ads" aria-pressed="true">الإعلانات</button>
+    <button data-act="tab" data-tab="sellers" aria-pressed="false">الچايچية</button>
+    <button data-act="tab" data-tab="req" aria-pressed="false">طلبات الانضمام<span class="bd" id="bd" hidden></span></button>
+  </nav>
+
+  <div id="v-ads">
+  <section class="stats" id="stats"></section>
+  <p class="note">الأرقام والإعلانات هنا أمثلة تجريبية. بعد الربط بقاعدة البيانات تصير أرقام حقيقية من تطبيق الزبون.</p>
+
+  <h2>إعلاناتك</h2>
+  <div class="cards" id="list"></div>
+
+  <h2>إعلان جديد</h2>
+  <form id="form" novalidate>
+    <div class="f"><label for="shop">اسم المحل</label><input class="in" id="shop" maxlength="30" placeholder="مثال: مخبز الأمل" autocomplete="off"></div>
+    <div class="f"><label for="text">نص الإعلان</label><textarea class="in" id="text" maxlength="80" placeholder="جملة قصيرة تعرّف الزبون بالمحل"></textarea><div class="cnt" id="cnt">٠ / ٨٠</div></div>
+    <div class="f"><label for="phone">رقم المحل</label><input class="in" id="phone" type="tel" inputmode="tel" maxlength="14" placeholder="07701234567" autocomplete="off"></div>
+    <div class="f"><label for="zone">المنطقة</label><select class="in" id="zone"></select></div>
+    <div class="two">
+      <div class="f"><label for="start">من تاريخ</label><input class="in" id="start" type="date"></div>
+      <div class="f"><label for="end">إلى تاريخ</label><input class="in" id="end" type="date"></div>
+    </div>
+    <p class="preview-h">هكذا يشوفه الزبون</p>
+    <div class="pv" id="pv"></div>
+    <p class="err" id="err" role="alert"></p>
+    <button class="btn" type="submit">أضف الإعلان</button>
+  </form>
+  </div>
+
+  <div id="v-sellers" hidden>
+    <div id="invite-slot"></div>
+    <h2>الچايچية</h2>
+    <div class="cards" id="slist"></div>
+    <h2>أضف چايچي</h2>
+    <form id="sform" novalidate>
+      <div class="f"><label for="s-name">الاسم</label><input class="in" id="s-name" maxlength="30" placeholder="مثال: أبو أحمد" autocomplete="off"></div>
+      <div class="f"><label for="s-phone">رقم جواله</label><input class="in" id="s-phone" type="tel" inputmode="tel" maxlength="14" placeholder="07701234567" autocomplete="off"></div>
+      <div class="f"><label for="s-zone">المنطقة</label><select class="in" id="s-zone"></select></div>
+      <p class="err" id="s-err" role="alert"></p>
+      <button class="btn" type="submit">أضفه وأعطيه كود</button>
+    </form>
+    <p class="note">لما تضيفه يطلع له كود دخول من أربع أرقام، ورسالة جاهزة ترسلها له على الواتساب.</p>
+  </div>
+
+  <div id="v-req" hidden>
+    <h2>طلبات الانضمام</h2>
+    <div class="cards" id="rlist"></div>
+    <p class="note">الچايچي ما يظهر للزبائن إلا بعد ما توافق على طلبه.</p>
+  </div>
+</div>
+
+<script>
+document.documentElement.dir = 'rtl';
+document.documentElement.lang = 'ar';
+
+var ZONES = { all: 'كل المناطق', zuhoor: 'حي الزهور', jamia: 'حي الجامعة', dawasa: 'الدواسة' };
+function $(id) { return document.getElementById(id); }
+function ar(n) { return String(n).replace(/\d/g, function (d) { return '٠١٢٣٤٥٦٧٨٩'[d]; }); }
+function esc(t) { return String(t).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
+function iso(d) { return d.getFullYear() + '-' + ('0' + (d.getMonth() + 1)).slice(-2) + '-' + ('0' + d.getDate()).slice(-2); }
+function off(days) { var d = new Date(); d.setDate(d.getDate() + days); return iso(d); }
+function dshow(s) { return ar(s.slice(8, 10) + '/' + s.slice(5, 7)); }
+
+var seq = 4;
+var ads = [
+  { id: 1, shop: 'مخبز الأمل', text: 'صمون وخبز حار كل صباح.', phone: '07701234567', zone: 'zuhoor', start: off(-6), end: off(8), on: true, views: 412, clicks: 23 },
+  { id: 2, shop: 'مكتبة الجامعة', text: 'تصوير وطباعة وتغليف بحث التخرج.', phone: '07705550123', zone: 'jamia', start: off(-2), end: off(12), on: true, views: 188, clicks: 9 },
+  { id: 3, shop: 'حلويات النخيل', text: 'كليچة وبقلاوة طازجة. خصم ١٠٪ للي يطلب من شايچي.', phone: '07709876543', zone: 'all', start: off(3), end: off(17), on: true, views: 0, clicks: 0 },
+  { id: 4, shop: 'مطعم أبو نوار', text: 'تكة وكباب. توصيل داخل الدواسة.', phone: '07703334455', zone: 'dawasa', start: off(-20), end: off(-5), on: true, views: 530, clicks: 31 }
+];
+var confirmId = 0;
+
+function status(a) {
+  var t = iso(new Date());
+  if (!a.on) return { k: 'off', t: 'موقوف' };
+  if (t < a.start) return { k: 'busy', t: 'ما بدأ' };
+  if (t > a.end) return { k: 'off', t: 'انتهى' };
+  return { k: 'ok', t: 'شغال' };
+}
+function ctr(a) { return a.views ? ar((a.clicks / a.views * 100).toFixed(1)).replace('.', '٫') + '٪' : '—'; }
+
+function renderStats() {
+  var live = ads.filter(function (a) { return status(a).k === 'ok'; }).length;
+  var v = ads.reduce(function (t, a) { return t + a.views; }, 0);
+  var c = ads.reduce(function (t, a) { return t + a.clicks; }, 0);
+  $('stats').innerHTML = '<div class="stat"><span>إعلانات شغالة</span><b>' + ar(live) + '</b></div>' +
+    '<div class="stat"><span>مرات الظهور</span><b>' + ar(v) + '</b></div>' +
+    '<div class="stat"><span>ضغطوا عليه</span><b>' + ar(c) + '</b></div>';
+}
+
+function renderList() {
+  if (!ads.length) {
+    $('list').innerHTML = '<div class="empty"><strong>ماكو إعلانات</strong><p>أضف أول إعلان من الفورم تحت.</p></div>';
+    return;
+  }
+  $('list').innerHTML = ads.map(function (a) {
+    var st = status(a);
+    return '<div class="card' + (st.k === 'off' ? ' dim' : '') + '"><div class="row"><div class="shop">' + esc(a.shop) + '</div><span class="pill ' + st.k + '">' + st.t + '</span></div>' +
+      '<p class="txt">' + esc(a.text) + '</p>' +
+      '<div class="meta"><span>' + ZONES[a.zone] + '</span><span>' + dshow(a.start) + ' إلى ' + dshow(a.end) + '</span><span class="ltr">' + esc(a.phone) + '</span></div>' +
+      '<div class="nums"><div>ظهر<b>' + ar(a.views) + '</b></div><div>ضغطوا<b>' + ar(a.clicks) + '</b></div><div>نسبة الضغط<b>' + ctr(a) + '</b></div></div>' +
+      '<div class="btns"><button class="btn-line" data-act="toggle" data-id="' + a.id + '">' + (a.on ? 'وقّف' : 'شغّل') + '</button>' +
+      (confirmId === a.id
+        ? '<button class="btn-line danger" data-act="del" data-id="' + a.id + '">تأكيد الحذف</button><button class="btn-line" data-act="cancel">لا</button>'
+        : '<button class="btn-line" data-act="ask" data-id="' + a.id + '">احذف</button>') + '</div></div>';
+  }).join('');
+}
+
+function renderPreview() {
+  var shop = $('shop').value.trim() || 'اسم المحل';
+  var text = $('text').value.trim() || 'نص الإعلان يطلع هنا.';
+  var phone = $('phone').value.trim() || '07xxxxxxxxx';
+  $('pv').innerHTML = '<span class="tag">إعلان</span><div class="shop">' + esc(shop) + '</div><p>' + esc(text) + '</p><div class="ph">' + esc(phone) + '</div>';
+  $('cnt').textContent = ar($('text').value.length) + ' / ٨٠';
+}
+
+function renderAll() { renderStats(); renderList(); renderSellers(); renderReq(); }
+
+$('zone').innerHTML = Object.keys(ZONES).map(function (k) { return '<option value="' + k + '">' + ZONES[k] + '</option>'; }).join('');
+$('start').value = off(0);
+$('end').value = off(14);
+['shop', 'text', 'phone'].forEach(function (id) { $(id).addEventListener('input', renderPreview); });
+
+$('form').addEventListener('submit', function (e) {
+  e.preventDefault();
+  var shop = $('shop').value.trim(), text = $('text').value.trim(), phone = $('phone').value.trim().replace(/[\s-]/g, '');
+  var st = $('start').value, en = $('end').value;
+  var err = '';
+  if (!shop) err = 'اكتب اسم المحل.';
+  else if (!text) err = 'اكتب نص الإعلان.';
+  else if (!/^\+?\d{9,14}$/.test(phone)) err = 'رقم المحل لازم يكون أرقام فقط، مثال 07701234567.';
+  else if (!st || !en) err = 'اختار تاريخ البداية والنهاية.';
+  else if (en < st) err = 'تاريخ النهاية قبل البداية.';
+  $('err').textContent = err;
+  if (err) return;
+  ads.unshift({ id: ++seq, shop: shop, text: text, phone: phone, zone: $('zone').value, start: st, end: en, on: true, views: 0, clicks: 0 });
+  $('shop').value = ''; $('text').value = ''; $('phone').value = '';
+  renderPreview(); renderAll();
+  window.scrollTo(0, 0);
+});
+
+document.addEventListener('click', function (e) {
+  var t = e.target.closest('[data-act]');
+  if (!t) return;
+  var a = t.dataset.act, id = Number(t.dataset.id);
+  if (a === 'toggle') { ads.forEach(function (x) { if (x.id === id) x.on = !x.on; }); confirmId = 0; }
+  else if (a === 'ask') confirmId = id;
+  else if (a === 'cancel') confirmId = 0;
+  else if (a === 'del') { ads = ads.filter(function (x) { return x.id !== id; }); confirmId = 0; }
+  else if (a === 'tab') { showTab(t.dataset.tab); return; }
+  else if (a === 'copy') { copyText(t.dataset.src, t); return; }
+  else if (a === 'stoggle') { sellers.forEach(function (x) { if (x.id === id) x.on = !x.on; }); sconfirm = 0; }
+  else if (a === 'sask') sconfirm = id;
+  else if (a === 'scancel') sconfirm = 0;
+  else if (a === 'sdel') { sellers = sellers.filter(function (x) { return x.id !== id; }); sconfirm = 0; invite = null; }
+  else if (a === 'invite') { invite = sellers.filter(function (x) { return x.id === id; })[0] || null; }
+  else if (a === 'approve') approveReq(id);
+  else if (a === 'rask') rconfirm = id;
+  else if (a === 'rcancel') rconfirm = 0;
+  else if (a === 'reject') { reqs = reqs.filter(function (x) { return x.id !== id; }); rconfirm = 0; }
+  renderAll();
+});
+
+/* ---------- sellers and join requests ---------- */
+var SELLER_LINK = 'https://radhwanmalaah-sudo.github.io/chaychi/seller.html';
+var SZONES = { zuhoor: 'حي الزهور', jamia: 'حي الجامعة', dawasa: 'الدواسة' };
+var DRINKS = { glass: 'استكان چاي', milk: 'چاي بالحليب', mint: 'چاي بالنعناع', coffee: 'قهوة' };
+var sellers = [
+  { id: 1, name: 'أبو أحمد', phone: '07701112233', zone: 'zuhoor', code: '1234', on: true },
+  { id: 2, name: 'أبو علي', phone: '07704445566', zone: 'zuhoor', code: '5821', on: true },
+  { id: 3, name: 'أبو مصطفى', phone: '07707778899', zone: 'jamia', code: '3306', on: true }
+];
+var reqs = [
+  { id: 1, name: 'أبو سعد', phone: '07712345678', zone: 'dawasa', drinks: ['glass', 'coffee'] },
+  { id: 2, name: 'حجي نوري', phone: '07715556677', zone: 'dawasa', drinks: ['glass'] }
+];
+var sseq = 3, rseq = 2, sconfirm = 0, rconfirm = 0, invite = null;
+
+function newCode() {
+  var c;
+  do { c = String(1000 + Math.floor(Math.random() * 9000)); } while (sellers.some(function (x) { return x.code === c; }));
+  return c;
+}
+function inviteText(x) {
+  return 'أهلاً ' + x.name + '، حمّل تطبيق شايچي للچايچية من هذا الرابط: ' + SELLER_LINK + ' وادخل بالكود ' + x.code + '. افتحه من Chrome واختار "إضافة إلى الشاشة الرئيسية".';
+}
+function copyText(srcId, btn) {
+  var el = document.getElementById(srcId);
+  if (!el) return;
+  var text = el.tagName === 'TEXTAREA' ? el.value : el.textContent;
+  var old = btn.getAttribute('data-label') || btn.textContent;
+  btn.setAttribute('data-label', old);
+  function done(ok) { btn.textContent = ok ? 'تم النسخ' : 'حدده وانسخه'; setTimeout(function () { btn.textContent = old; }, 1600); }
+  function fallback() { try { el.select(); } catch (e) {} done(false); }
+  try { navigator.clipboard.writeText(text).then(function () { done(true); }, fallback); } catch (e) { fallback(); }
+}
+function showTab(t) {
+  ['ads', 'sellers', 'req'].forEach(function (k) { $('v-' + k).hidden = k !== t; });
+  Array.prototype.forEach.call(document.querySelectorAll('.ptabs button'), function (b) { b.setAttribute('aria-pressed', String(b.dataset.tab === t)); });
+  window.scrollTo(0, 0);
+}
+function approveReq(id) {
+  var r = reqs.filter(function (x) { return x.id === id; })[0];
+  if (!r) return;
+  var x = { id: ++sseq, name: r.name, phone: r.phone, zone: r.zone, code: newCode(), on: true };
+  sellers.push(x);
+  reqs = reqs.filter(function (y) { return y.id !== id; });
+  invite = x;
+  showTab('sellers');
+}
+
+function renderSellers() {
+  var slot = $('invite-slot');
+  if (invite) {
+    slot.innerHTML = '<div class="invite"><h3>أرسل الدعوة لـ ' + esc(invite.name) + '</h3><div class="row"><span style="color:var(--ink-2);font-size:14px">كود الدخول</span><span class="codeb">' + esc(invite.code) + '</span></div>' +
+      '<textarea id="invtxt" readonly></textarea><div class="btns"><button class="btn-ok" data-act="copy" data-src="invtxt">انسخ الرسالة</button></div></div>';
+    $('invtxt').value = inviteText(invite);
+  } else { slot.innerHTML = ''; }
+  if (!sellers.length) { $('slist').innerHTML = '<div class="empty"><strong>ماكو چايچية</strong><p>أضف أول واحد من الفورم تحت.</p></div>'; return; }
+  $('slist').innerHTML = sellers.map(function (x) {
+    return '<div class="card' + (x.on ? '' : ' dim') + '"><div class="row"><div><div class="shop">' + esc(x.name) + '</div>' +
+      '<div class="meta"><span>' + SZONES[x.zone] + '</span><span class="ltr">' + esc(x.phone) + '</span></div></div>' +
+      '<span class="codeb">' + esc(x.code) + '</span></div>' +
+      '<div class="row"><span class="pill ' + (x.on ? 'ok' : 'off') + '">' + (x.on ? 'شغال' : 'موقوف') + '</span></div>' +
+      '<div class="btns"><button class="btn-line" data-act="invite" data-id="' + x.id + '">رسالة الدعوة</button>' +
+      '<button class="btn-line" data-act="stoggle" data-id="' + x.id + '">' + (x.on ? 'وقّف' : 'شغّل') + '</button>' +
+      (sconfirm === x.id
+        ? '<button class="btn-line danger" data-act="sdel" data-id="' + x.id + '">تأكيد الحذف</button><button class="btn-line" data-act="scancel">لا</button>'
+        : '<button class="btn-line" data-act="sask" data-id="' + x.id + '">احذف</button>') + '</div></div>';
+  }).join('');
+}
+
+function renderReq() {
+  $('bd').hidden = !reqs.length;
+  $('bd').textContent = ar(reqs.length);
+  if (!reqs.length) { $('rlist').innerHTML = '<div class="empty"><strong>ماكو طلبات</strong><p>طلبات الانضمام الجديدة تطلع هنا.</p></div>'; return; }
+  $('rlist').innerHTML = reqs.map(function (r) {
+    return '<div class="card"><div class="row"><div class="shop">' + esc(r.name) + '</div><span class="pill busy">ينتظر موافقتك</span></div>' +
+      '<div class="meta"><span>' + SZONES[r.zone] + '</span><span class="ltr">' + esc(r.phone) + '</span></div>' +
+      '<div class="chips">' + r.drinks.map(function (d) { return '<span>' + DRINKS[d] + '</span>'; }).join('') + '</div>' +
+      '<div class="btns"><button class="btn-ok" data-act="approve" data-id="' + r.id + '">وافق وأعطه كود</button>' +
+      (rconfirm === r.id
+        ? '<button class="btn-line danger" data-act="reject" data-id="' + r.id + '">تأكيد الرفض</button><button class="btn-line" data-act="rcancel">لا</button>'
+        : '<button class="btn-line" data-act="rask" data-id="' + r.id + '">ارفض</button>') + '</div></div>';
+  }).join('');
+}
+
+$('s-zone').innerHTML = Object.keys(SZONES).map(function (k) { return '<option value="' + k + '">' + SZONES[k] + '</option>'; }).join('');
+$('sform').addEventListener('submit', function (e) {
+  e.preventDefault();
+  var name = $('s-name').value.trim(), phone = $('s-phone').value.trim().replace(/[\s-]/g, '');
+  var err = '';
+  if (!name) err = 'اكتب اسم الچايچي.';
+  else if (!/^\+?\d{9,14}$/.test(phone)) err = 'الرقم لازم يكون أرقام فقط، مثال 07701234567.';
+  $('s-err').textContent = err;
+  if (err) return;
+  var x = { id: ++sseq, name: name, phone: phone, zone: $('s-zone').value, code: newCode(), on: true };
+  sellers.push(x); invite = x;
+  $('s-name').value = ''; $('s-phone').value = '';
+  renderAll();
+});
+
+renderPreview();
+renderAll();
+</script>
+</body>
+</html>
