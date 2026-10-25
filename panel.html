@@ -186,6 +186,13 @@ textarea.in { resize: vertical; min-height: 64px; }
       <p class="err" id="s-err" role="alert"></p>
       <button class="btn" type="submit">أضفه وأعطيه كود</button>
     </form>
+    <h2>المناطق</h2>
+    <div class="cards" id="zlist"></div>
+    <form id="zform" novalidate>
+      <div class="f"><label for="z-name">اسم منطقة جديدة</label><input class="in" id="z-name" maxlength="30" placeholder="مثال: حي النور" autocomplete="off"></div>
+      <p class="err" id="z-err" role="alert"></p>
+      <button class="btn" type="submit">أضف المنطقة</button>
+    </form>
     <p class="note">لما تضيفه يطلع له كود دخول من ثمان خانات، ورسالة جاهزة ترسلها له على الواتساب.</p>
   </div>
 
@@ -202,11 +209,12 @@ textarea.in { resize: vertical; min-height: 64px; }
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
 <script>
 var FBCONFIG = { apiKey: 'AIzaSyDT27G2lUpfUPcAMvRIPkllY3bzbQv87Eg', authDomain: 'chaychi-61eaf.firebaseapp.com', projectId: 'chaychi-61eaf', storageBucket: 'chaychi-61eaf.firebasestorage.app', messagingSenderId: '669532553284', appId: '1:669532553284:web:b999af1fc4824c7affbc11' };
-var ZONES = [
+var ZONES_DEFAULT = [
   { id: 'zuhoor', name: 'حي الزهور' },
   { id: 'jamia', name: 'حي الجامعة' },
   { id: 'dawasa', name: 'الدواسة' }
 ];
+var ZONES = ZONES_DEFAULT.slice();
 var DRINKS = [
   { id: 'glass', name: 'استكان چاي', price: 250 },
   { id: 'milk', name: 'چاي بالحليب', price: 500 },
@@ -259,15 +267,35 @@ function dist(m) { return m < 1000 ? ar(m) + ' م' : ar((m / 1000).toFixed(1)).r
 function glass(cls) { return '<svg class="' + (cls || 'ico') + '"><use href="#i-glass"/></svg>'; }
 function drinkName(id) { var d = DRINKS.filter(function (x) { return x.id === id; })[0]; return d ? d.name : id; }
 function zoneName(id) { var z = ZONES.filter(function (x) { return x.id === id; })[0]; return z ? z.name : id; }
+/* zones live in the database so the owner can add them from the panel; the defaults show until the first load */
+function watchZones(cb) {
+  return db.collection('zones').onSnapshot(function (s) {
+    if (!s.empty) {
+      ZONES = s.docs.map(function (d) { var x = d.data(); return { id: d.id, name: x.name, o: x.o || 0 }; }).sort(function (a, b) { return a.o - b.o || (a.name < b.name ? -1 : 1); });
+    }
+    cb(s);
+  }, function () { cb(null); });
+}
 var CODE_CHARS = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
 function newCode() { var s = '', a = new Uint32Array(8); (window.crypto || window.msCrypto).getRandomValues(a); for (var i = 0; i < 8; i++) s += CODE_CHARS[a[i] % CODE_CHARS.length]; return s; }
 function normCode(t) { return String(t || '').toUpperCase().replace(/[٠-٩]/g, function (d) { return '٠١٢٣٤٥٦٧٨٩'.indexOf(d); }).replace(/[^A-Z0-9]/g, ''); }
+
+/* menu: preset drinks are stored as id -> price, custom items as id -> {n: name, p: price} */
+function menuItems(menu) {
+  var out = [], m = menu || {};
+  DRINKS.forEach(function (d) { if (typeof m[d.id] === 'number') out.push({ id: d.id, name: d.name, price: m[d.id], custom: false }); });
+  Object.keys(m).forEach(function (k) {
+    var v = m[k];
+    if (v && typeof v === 'object' && typeof v.p === 'number' && v.n && !DRINKS.some(function (d) { return d.id === k; })) out.push({ id: k, name: String(v.n).slice(0, 30), price: v.p, custom: true });
+  });
+  return out;
+}
 
 document.documentElement.dir = 'rtl';
 document.documentElement.lang = 'ar';
 
 var SELLER_LINK = 'https://radhwanmalaah-sudo.github.io/chaychi/seller.html';
-var ZONE_OPTS = [{ id: 'all', name: 'كل المناطق' }].concat(ZONES);
+function zoneOpts() { return [{ id: 'all', name: 'كل المناطق' }].concat(ZONES); }
 function iso(d) { return d.getFullYear() + '-' + ('0' + (d.getMonth() + 1)).slice(-2) + '-' + ('0' + d.getDate()).slice(-2); }
 function off(days) { var d = new Date(); d.setDate(d.getDate() + days); return iso(d); }
 function dshow(s) { return s ? ar(s.slice(8, 10) + '/' + s.slice(5, 7)) : ''; }
@@ -322,9 +350,24 @@ function renderPreview() {
   $('pv').innerHTML = '<span class="tag">إعلان</span><div class="shop">' + esc(shop) + '</div><p>' + esc(text) + '</p><div class="ph">' + esc(phone) + '</div>';
   $('cnt').textContent = ar($('text').value.length) + ' / ٨٠';
 }
-function renderAll() { renderStats(); renderList(); renderSellers(); renderReq(); }
+function renderAll() { renderStats(); renderList(); renderSellers(); renderReq(); renderZonesBox(); }
+var zconfirm = '';
+function renderZonesBox() {
+  var el = $('zlist'); if (!el) return;
+  el.innerHTML = ZONES.map(function (z) {
+    var n = sellers.filter(function (s) { return s.zone === z.id; }).length;
+    return '<div class="card"><div class="row"><div><div class="shop">' + esc(z.name) + '</div><div class="meta"><span>' + ar(n) + ' چايچي</span></div></div></div>' +
+      '<div class="btns">' + (zconfirm === z.id ? '<button class="btn-line danger" data-act="zdel" data-id="' + z.id + '">تأكيد الحذف</button><button class="btn-line" data-act="zcancel">لا</button>' : '<button class="btn-line" data-act="zask" data-id="' + z.id + '">احذف</button>') + '</div></div>';
+  }).join('');
+}
 
-$('zone').innerHTML = ZONE_OPTS.map(function (z) { return '<option value="' + z.id + '">' + esc(z.name) + '</option>'; }).join('');
+function fillZoneSelects() {
+  var a = $('zone').value, b = $('s-zone').value;
+  $('zone').innerHTML = zoneOpts().map(function (z) { return '<option value="' + z.id + '">' + esc(z.name) + '</option>'; }).join('');
+  $('s-zone').innerHTML = ZONES.map(function (z) { return '<option value="' + z.id + '">' + esc(z.name) + '</option>'; }).join('');
+  if (a) $('zone').value = a; if (b) $('s-zone').value = b;
+}
+fillZoneSelects();
 $('start').value = off(0);
 $('end').value = off(14);
 ['shop', 'text', 'phone'].forEach(function (id) { $(id).addEventListener('input', renderPreview); });
@@ -435,7 +478,6 @@ function renderReq() {
   }).join('');
 }
 
-$('s-zone').innerHTML = ZONES.map(function (z) { return '<option value="' + z.id + '">' + esc(z.name) + '</option>'; }).join('');
 $('sform').addEventListener('submit', function (e) {
   e.preventDefault();
   var name = $('s-name').value.trim(), phone = $('s-phone').value.trim().replace(/[\s-]/g, '');
@@ -472,9 +514,25 @@ document.addEventListener('click', function (e) {
   else if (a === 'rask') rconfirm = id;
   else if (a === 'rcancel') rconfirm = '';
   else if (a === 'reject') { db.collection('joinRequests').doc(id).update({ status: 'rejected' }).catch(fail); rconfirm = ''; }
+  else if (a === 'zask') zconfirm = id;
+  else if (a === 'zcancel') zconfirm = '';
+  else if (a === 'zdel') {
+    zconfirm = '';
+    if (sellers.some(function (s) { return s.zone === id; })) { $('z-err').textContent = 'بهذي المنطقة چايچية. انقلهم أو احذفهم أول.'; }
+    else { $('z-err').textContent = ''; db.collection('zones').doc(id).delete().catch(fail); }
+  }
   else if (a === 'login') signIn();
   else if (a === 'logout') signOut();
   renderAll();
+});
+
+$('zform').addEventListener('submit', function (e) {
+  e.preventDefault();
+  var n = $('z-name').value.trim();
+  if (!n) { $('z-err').textContent = 'اكتب اسم المنطقة.'; return; }
+  if (ZONES.some(function (z) { return z.name === n; })) { $('z-err').textContent = 'هذي المنطقة موجودة.'; return; }
+  $('z-err').textContent = '';
+  db.collection('zones').doc('z' + Date.now().toString(36)).set({ name: n, o: Date.now() }).then(function () { $('z-name').value = ''; }, fail);
 });
 
 /* ---------- login (Google) and live data ---------- */
@@ -484,6 +542,14 @@ function listenAll() {
   var bad = function (e) {
     if (e && e.code === 'permission-denied') { denied(); } else fail(e);
   };
+  unsubs.push(watchZones(function (s) {
+    if (s && s.empty) {
+      var b = db.batch();
+      ZONES_DEFAULT.forEach(function (z, i) { b.set(db.collection('zones').doc(z.id), { name: z.name, o: i + 1 }); });
+      b.commit().catch(fail);
+    }
+    fillZoneSelects(); renderAll();
+  }));
   unsubs.push(db.collection('ads').orderBy('createdAt', 'desc').onSnapshot(function (s) { ads = s.docs.map(function (d) { var x = d.data(); x.id = d.id; return x; }); renderAll(); }, bad));
   unsubs.push(db.collection('sellers').onSnapshot(function (s) { sellers = s.docs.map(function (d) { var x = d.data(); x.id = d.id; return x; }); renderAll(); }, bad));
   unsubs.push(db.collection('sellerPrivate').onSnapshot(function (s) { privs = {}; s.docs.forEach(function (d) { privs[d.id] = d.data(); }); renderAll(); }, bad));

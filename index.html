@@ -274,11 +274,12 @@ label.f { display: block; font-weight: 600; font-size: 14px; margin-bottom: 6px;
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
 <script>
 var FBCONFIG = { apiKey: 'AIzaSyDT27G2lUpfUPcAMvRIPkllY3bzbQv87Eg', authDomain: 'chaychi-61eaf.firebaseapp.com', projectId: 'chaychi-61eaf', storageBucket: 'chaychi-61eaf.firebasestorage.app', messagingSenderId: '669532553284', appId: '1:669532553284:web:b999af1fc4824c7affbc11' };
-var ZONES = [
+var ZONES_DEFAULT = [
   { id: 'zuhoor', name: 'حي الزهور' },
   { id: 'jamia', name: 'حي الجامعة' },
   { id: 'dawasa', name: 'الدواسة' }
 ];
+var ZONES = ZONES_DEFAULT.slice();
 var DRINKS = [
   { id: 'glass', name: 'استكان چاي', price: 250 },
   { id: 'milk', name: 'چاي بالحليب', price: 500 },
@@ -331,9 +332,29 @@ function dist(m) { return m < 1000 ? ar(m) + ' م' : ar((m / 1000).toFixed(1)).r
 function glass(cls) { return '<svg class="' + (cls || 'ico') + '"><use href="#i-glass"/></svg>'; }
 function drinkName(id) { var d = DRINKS.filter(function (x) { return x.id === id; })[0]; return d ? d.name : id; }
 function zoneName(id) { var z = ZONES.filter(function (x) { return x.id === id; })[0]; return z ? z.name : id; }
+/* zones live in the database so the owner can add them from the panel; the defaults show until the first load */
+function watchZones(cb) {
+  return db.collection('zones').onSnapshot(function (s) {
+    if (!s.empty) {
+      ZONES = s.docs.map(function (d) { var x = d.data(); return { id: d.id, name: x.name, o: x.o || 0 }; }).sort(function (a, b) { return a.o - b.o || (a.name < b.name ? -1 : 1); });
+    }
+    cb(s);
+  }, function () { cb(null); });
+}
 var CODE_CHARS = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
 function newCode() { var s = '', a = new Uint32Array(8); (window.crypto || window.msCrypto).getRandomValues(a); for (var i = 0; i < 8; i++) s += CODE_CHARS[a[i] % CODE_CHARS.length]; return s; }
 function normCode(t) { return String(t || '').toUpperCase().replace(/[٠-٩]/g, function (d) { return '٠١٢٣٤٥٦٧٨٩'.indexOf(d); }).replace(/[^A-Z0-9]/g, ''); }
+
+/* menu: preset drinks are stored as id -> price, custom items as id -> {n: name, p: price} */
+function menuItems(menu) {
+  var out = [], m = menu || {};
+  DRINKS.forEach(function (d) { if (typeof m[d.id] === 'number') out.push({ id: d.id, name: d.name, price: m[d.id], custom: false }); });
+  Object.keys(m).forEach(function (k) {
+    var v = m[k];
+    if (v && typeof v === 'object' && typeof v.p === 'number' && v.n && !DRINKS.some(function (d) { return d.id === k; })) out.push({ id: k, name: String(v.n).slice(0, 30), price: v.p, custom: true });
+  });
+  return out;
+}
 
 document.documentElement.dir = 'rtl';
 document.documentElement.lang = 'ar';
@@ -449,7 +470,7 @@ var unsubSellers = null, unsubAds = null, unsubOrder = null, loaded = false;
 try { orderId = localStorage.getItem('chaychi-order') || null; } catch (e) {}
 
 function mins(n) { return ar(n) + ' دقيقة'; }
-function menuIds(s) { return Object.keys(s.menu || {}).filter(function (k) { return DRINKS.some(function (d) { return d.id === k; }); }); }
+function menuIds(s) { return menuItems(s.menu); }
 function isOk(s) { return !s.blocked && !!s.online && menuIds(s).length > 0 && (Date.now() - (s.hb || 0)) < HB_FRESH; }
 function decorate(s) {
   var o = { id: s.id, name: s.name, menu: s.menu || {}, ok: isOk(s), rate: s.rate || 0, m: null, eta: null, lat: s.lat, lng: s.lng };
@@ -469,7 +490,7 @@ function sorted() {
   });
 }
 function drinksHtml(s) {
-  return '<div class="drinks">' + menuIds(s).map(function (id) { return '<span>' + esc(drinkName(id)) + '</span>'; }).join('') + '</div>';
+  return '<div class="drinks">' + menuIds(s).map(function (it) { return '<span>' + esc(it.name) + '</span>'; }).join('') + '</div>';
 }
 
 /* ---------- ads ---------- */
@@ -568,11 +589,11 @@ function locate(done) {
 
 /* ---------- order sheet ---------- */
 function findSeller(id) { return sellers.filter(function (s) { return s.id === id; }).map(decorate)[0]; }
-function pickDrinks() { return DRINKS.filter(function (m) { return pick && typeof pick.menu[m.id] === 'number'; }); }
-function cartTotal() { return pickDrinks().reduce(function (t, m) { return t + (cart[m.id] || 0) * pick.menu[m.id]; }, 0); }
+function pickDrinks() { return pick ? menuItems(pick.menu) : []; }
+function cartTotal() { return pickDrinks().reduce(function (t, m) { return t + (cart[m.id] || 0) * m.price; }, 0); }
 function renderSheet() {
   $('items').innerHTML = pickDrinks().map(function (m) {
-    return '<div class="item"><div><div class="t">' + esc(m.name) + '</div><div class="p">' + money(pick.menu[m.id]) + '</div></div>' +
+    return '<div class="item"><div><div class="t">' + esc(m.name) + '</div><div class="p">' + money(m.price) + '</div></div>' +
       '<div class="step"><button data-act="dec" data-id="' + m.id + '" aria-label="نقّص ' + esc(m.name) + '">−</button>' +
       '<output>' + ar(cart[m.id] || 0) + '</output>' +
       '<button data-act="inc" data-id="' + m.id + '" aria-label="زيّد ' + esc(m.name) + '">+</button></div></div>';
@@ -603,7 +624,7 @@ function sendOrder() {
   if (!loc && !myLoc) { $('err').textContent = 'اكتب وين أنت أو اضغط "حدد موقعي".'; $('loc').focus(); return; }
   var payEl = document.querySelector('input[name="pay"]:checked');
   var pay = payEl ? payEl.value : 'now';
-  var lines = pickDrinks().filter(function (m) { return cart[m.id]; }).map(function (m) { return { id: m.id, n: m.name, q: cart[m.id], p: pick.menu[m.id] }; });
+  var lines = pickDrinks().filter(function (m) { return cart[m.id]; }).map(function (m) { return { id: m.id, n: m.name, q: cart[m.id], p: m.price }; });
   var qty = lines.reduce(function (t, l) { return t + l.q; }, 0);
   var now = Date.now();
   var doc = {
@@ -751,9 +772,15 @@ renderZones();
 renderSnd();
 renderList();
 renderOrders();
+var zonesReady = false;
 ensureAuth().then(function () {
-  listenZone();
-  if (orderId) listenOrder();
+  watchZones(function () {
+    var had = zoneId;
+    if (!ZONES.some(function (z) { return z.id === zoneId; })) zoneId = ZONES[0].id;
+    renderZones();
+    if (!zonesReady) { zonesReady = true; listenZone(); if (orderId) listenOrder(); }
+    else if (had !== zoneId) listenZone();
+  });
 }, function (e) { loaded = true; showErr(errText(e)); renderList(); });
 
 </script>

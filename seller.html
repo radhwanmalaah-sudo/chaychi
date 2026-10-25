@@ -276,11 +276,12 @@ h2 .n { background: var(--tea); color: var(--tea-ink); border-radius: 999px; min
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
 <script>
 var FBCONFIG = { apiKey: 'AIzaSyDT27G2lUpfUPcAMvRIPkllY3bzbQv87Eg', authDomain: 'chaychi-61eaf.firebaseapp.com', projectId: 'chaychi-61eaf', storageBucket: 'chaychi-61eaf.firebasestorage.app', messagingSenderId: '669532553284', appId: '1:669532553284:web:b999af1fc4824c7affbc11' };
-var ZONES = [
+var ZONES_DEFAULT = [
   { id: 'zuhoor', name: 'حي الزهور' },
   { id: 'jamia', name: 'حي الجامعة' },
   { id: 'dawasa', name: 'الدواسة' }
 ];
+var ZONES = ZONES_DEFAULT.slice();
 var DRINKS = [
   { id: 'glass', name: 'استكان چاي', price: 250 },
   { id: 'milk', name: 'چاي بالحليب', price: 500 },
@@ -333,9 +334,29 @@ function dist(m) { return m < 1000 ? ar(m) + ' م' : ar((m / 1000).toFixed(1)).r
 function glass(cls) { return '<svg class="' + (cls || 'ico') + '"><use href="#i-glass"/></svg>'; }
 function drinkName(id) { var d = DRINKS.filter(function (x) { return x.id === id; })[0]; return d ? d.name : id; }
 function zoneName(id) { var z = ZONES.filter(function (x) { return x.id === id; })[0]; return z ? z.name : id; }
+/* zones live in the database so the owner can add them from the panel; the defaults show until the first load */
+function watchZones(cb) {
+  return db.collection('zones').onSnapshot(function (s) {
+    if (!s.empty) {
+      ZONES = s.docs.map(function (d) { var x = d.data(); return { id: d.id, name: x.name, o: x.o || 0 }; }).sort(function (a, b) { return a.o - b.o || (a.name < b.name ? -1 : 1); });
+    }
+    cb(s);
+  }, function () { cb(null); });
+}
 var CODE_CHARS = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
 function newCode() { var s = '', a = new Uint32Array(8); (window.crypto || window.msCrypto).getRandomValues(a); for (var i = 0; i < 8; i++) s += CODE_CHARS[a[i] % CODE_CHARS.length]; return s; }
 function normCode(t) { return String(t || '').toUpperCase().replace(/[٠-٩]/g, function (d) { return '٠١٢٣٤٥٦٧٨٩'.indexOf(d); }).replace(/[^A-Z0-9]/g, ''); }
+
+/* menu: preset drinks are stored as id -> price, custom items as id -> {n: name, p: price} */
+function menuItems(menu) {
+  var out = [], m = menu || {};
+  DRINKS.forEach(function (d) { if (typeof m[d.id] === 'number') out.push({ id: d.id, name: d.name, price: m[d.id], custom: false }); });
+  Object.keys(m).forEach(function (k) {
+    var v = m[k];
+    if (v && typeof v === 'object' && typeof v.p === 'number' && v.n && !DRINKS.some(function (d) { return d.id === k; })) out.push({ id: k, name: String(v.n).slice(0, 30), price: v.p, custom: true });
+  });
+  return out;
+}
 
 document.documentElement.dir = 'rtl';
 document.documentElement.lang = 'ar';
@@ -448,7 +469,7 @@ var myJoin = null, unsubJoin = null;
 try { myJoin = localStorage.getItem('chaychi-join') || null; } catch (e) {}
 
 function now() { return Date.now(); }
-function enabledIds() { return prof && prof.menu ? Object.keys(prof.menu).filter(function (k) { return DRINKS.some(function (d) { return d.id === k; }); }) : []; }
+function enabledIds() { return prof ? menuItems(prof.menu).map(function (i) { return i.id; }) : []; }
 function allOrders() { return Object.keys(omap).map(function (k) { return omap[k]; }).sort(function (a, b) { return a.createdAt - b.createdAt; }); }
 function list(st) { return allOrders().filter(function (o) { return o.status === st; }); }
 function incoming() { return list('new').filter(function (o) { return now() - o.createdAt < ORDER_WAIT + 10000; }); }
@@ -558,23 +579,33 @@ function renderToday() {
   rows.forEach(function (o) { var el = document.querySelector('[data-h="' + o.id + '"]'); if (el) el.textContent = o.loc; });
 }
 function renderMenu() {
-  var ids = enabledIds(), menu = (prof && prof.menu) || {};
+  var ids = enabledIds(), menu = (prof && prof.menu) || {}, items = menuItems(menu);
+  var customs = items.filter(function (i) { return i.custom; });
+  function row(id, name, on, p, del) {
+    return '<div class="mrow' + (on ? '' : ' off') + '"><div class="t">' + esc(name) + '</div>' +
+      (del ? '<button class="btn-line" data-act="delc" data-m="' + esc(id) + '" style="padding:4px 10px;font-size:13px">احذف</button>'
+           : '<button class="sw" role="switch" aria-checked="' + on + '" aria-label="' + esc(name) + '" data-act="mon" data-m="' + id + '"></button>') +
+      '<div class="pr"><button data-act="pm" data-m="' + esc(id) + '" aria-label="نقّص سعر ' + esc(name) + '">−</button><output>' + money(p) + '</output>' +
+      '<button data-act="pp" data-m="' + esc(id) + '" aria-label="زيّد سعر ' + esc(name) + '">+</button></div></div>';
+  }
   $('v-menu').innerHTML = '<h2>المشاريب اللي عندك</h2>' +
-    (ids.length ? '' : '<div class="empty" style="margin-bottom:10px"><strong>ماكو مشروب مفعّل</strong><p>فعّل مشروب واحد على الأقل حتى تستقبل طلبات.</p></div>') +
+    (ids.length ? '' : '<div class="empty" style="margin-bottom:10px"><strong>ماكو مشروب مفعّل</strong><p>فعّل مشروب أو أضف من عندك حتى تستقبل طلبات.</p></div>') +
     '<div class="mlist">' + DRINKS.map(function (m) {
-      var on = typeof menu[m.id] === 'number', p = on ? menu[m.id] : m.price;
-      return '<div class="mrow' + (on ? '' : ' off') + '"><div class="t">' + esc(m.name) + '</div>' +
-        '<button class="sw" role="switch" aria-checked="' + on + '" aria-label="' + esc(m.name) + '" data-act="mon" data-m="' + m.id + '"></button>' +
-        '<div class="pr"><button data-act="pm" data-m="' + m.id + '" aria-label="نقّص سعر ' + esc(m.name) + '">−</button><output>' + money(p) + '</output>' +
-        '<button data-act="pp" data-m="' + m.id + '" aria-label="زيّد سعر ' + esc(m.name) + '">+</button></div></div>';
-    }).join('') + '</div>' +
-    '<p class="demo-note">الزبون يشوف بس المشاريب المفعّلة عندك، وبأسعارك.</p>';
+      var on = typeof menu[m.id] === 'number';
+      return row(m.id, m.name, on, on ? menu[m.id] : m.price, false);
+    }).join('') + customs.map(function (i) { return row(i.id, i.name, true, i.price, true); }).join('') + '</div>' +
+    '<h2>أضف مشروب أو شي تبيعه</h2>' +
+    '<form class="gform" id="f-custom" novalidate style="background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:14px">' +
+    '<div><label class="fl" for="cn">الاسم</label><input class="in" id="cn" maxlength="30" placeholder="مثال: عصير، كليچة، نسكافيه" autocomplete="off"></div>' +
+    '<div><label class="fl" for="cp">السعر بالدينار</label><input class="in" id="cp" inputmode="numeric" maxlength="6" placeholder="1000" autocomplete="off" style="direction:ltr;text-align:end"></div>' +
+    '<p class="gerr" id="e-custom" role="alert"></p><button class="btn" type="submit">أضف للقائمة</button></form>' +
+    '<p class="demo-note">الزبون يشوف بس اللي مفعّل عندك، وبأسعارك.</p>';
 }
 function saveMenu(menu) {
   prof.menu = menu;
   renderAll();
   db.collection('sellers').doc(sid).update({ menu: menu }).catch(function (e) { showErr(errText(e)); });
-  if (!Object.keys(menu).length && online) setOnline(false);
+  if (!menuItems(menu).length && online) setOnline(false);
 }
 function toggleDrink(id) {
   var menu = Object.assign({}, prof.menu || {}), d = DRINKS.filter(function (x) { return x.id === id; })[0];
@@ -582,11 +613,25 @@ function toggleDrink(id) {
   saveMenu(menu);
 }
 function stepPrice(id, delta) {
-  var menu = Object.assign({}, prof.menu || {});
-  if (typeof menu[id] !== 'number') return;
-  menu[id] = Math.max(250, Math.min(5000, menu[id] + delta));
+  var menu = Object.assign({}, prof.menu || {}), v = menu[id];
+  if (typeof v === 'number') menu[id] = Math.max(250, Math.min(50000, v + delta));
+  else if (v && typeof v === 'object') menu[id] = { n: v.n, p: Math.max(250, Math.min(50000, v.p + delta)) };
+  else return;
   saveMenu(menu);
 }
+function addCustom(e) {
+  e.preventDefault();
+  var n = $('cn').value.trim(), p = parseInt(normCode($('cp').value).replace(/\D/g, ''), 10);
+  var err = '';
+  if (!n) err = 'اكتب اسم المشروب.';
+  else if (!p || p < 250 || p > 50000) err = 'اكتب سعر صحيح، من ٢٥٠ إلى ٥٠٬٠٠٠.';
+  else if (menuItems(prof.menu).length >= 20) err = 'وصلت الحد الأعلى للقائمة.';
+  if (err) { $('e-custom').textContent = err; return; }
+  var menu = Object.assign({}, prof.menu || {});
+  menu['c' + Date.now().toString(36)] = { n: n, p: Math.round(p / 250) * 250 || p };
+  saveMenu(menu);
+}
+function delCustom(id) { var menu = Object.assign({}, prof.menu || {}); delete menu[id]; saveMenu(menu); }
 function renderAll() {
   if (!prof) return;
   renderAvail(); renderIncoming(); renderCollect(); renderActive(); renderToday(); renderMenu();
@@ -792,7 +837,12 @@ function forgetJoin() {
 }
 
 $('f-login').addEventListener('submit', function (e) { e.preventDefault(); loginWith($('code').value, $('e-login')); });
-$('j-zone').innerHTML = ZONES.map(function (z) { return '<option value="' + z.id + '">' + esc(z.name) + '</option>'; }).join('');
+function fillZones() {
+  var cur = $('j-zone').value;
+  $('j-zone').innerHTML = ZONES.map(function (z) { return '<option value="' + z.id + '">' + esc(z.name) + '</option>'; }).join('');
+  if (cur) $('j-zone').value = cur;
+}
+fillZones();
 $('j-drinks').innerHTML = DRINKS.map(function (m) {
   return '<label class="chk"><input type="checkbox" value="' + m.id + '"' + (m.id === 'glass' ? ' checked' : '') + '>' + esc(m.name) + '</label>';
 }).join('');
@@ -816,6 +866,7 @@ $('f-join').addEventListener('submit', function (e) {
 });
 
 /* ---------- events ---------- */
+document.addEventListener('submit', function (e) { if (e.target && e.target.id === 'f-custom') addCustom(e); });
 document.addEventListener('click', function (e) {
   var t = e.target.closest('[data-act],[data-tab]');
   if (!t) return;
@@ -833,6 +884,7 @@ document.addEventListener('click', function (e) {
   else if (a === 'collected') setOrder(id, { status: 'paid', paidAt: now(), open: false });
   else if (a === 'noshow') setOrder(id, { status: 'unpaid', open: false });
   else if (a === 'mon') toggleDrink(t.dataset.m);
+  else if (a === 'delc') delCustom(t.dataset.m);
   else if (a === 'pm') stepPrice(t.dataset.m, -250);
   else if (a === 'pp') stepPrice(t.dataset.m, 250);
   else if (a === 'snd') toggleSound();
@@ -870,6 +922,7 @@ setInterval(function () {
 /* start */
 renderSnd();
 ensureAuth().then(function () {
+  watchZones(function () { fillZones(); if (prof) { $('me').textContent = prof.name + ' · ' + zoneName(prof.zone); } });
   var kept = null;
   try { kept = localStorage.getItem('chaychi-seller-sid'); } catch (e) {}
   if (!kept) { showGate(); return; }
