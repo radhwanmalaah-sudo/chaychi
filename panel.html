@@ -117,6 +117,8 @@ textarea.in { resize: vertical; min-height: 64px; }
 .pv .shop { font-family: var(--font-display); font-size: 22px; line-height: 1.3; color: var(--tea); overflow-wrap: anywhere; }
 .pv p { margin: 0; overflow-wrap: anywhere; }
 .pv .ph { margin-top: 4px; padding-top: 8px; border-top: 1px solid var(--line); font-weight: 600; direction: ltr; text-align: end; }
+.fberr{background:var(--tea);color:var(--tea-ink);border-radius:12px;padding:10px 14px;margin:10px 0 0;font-size:14px;font-weight:600}
+.fberr[hidden]{display:none}
 </style>
 </head>
 <body>
@@ -131,8 +133,17 @@ textarea.in { resize: vertical; min-height: 64px; }
 <div class="app" dir="rtl" lang="ar">
   <header class="top">
     <div class="brand"><svg class="ico"><use href="#i-mega"/></svg><span>لوحة شايچي</span></div>
-    <div class="me">لوحة صاحب التطبيق</div>
+    <div class="me" id="who">لوحة صاحب التطبيق</div>
   </header>
+  <div class="fberr" id="fberr" hidden role="alert"></div>
+
+  <section id="plogin" style="display:grid;gap:12px;margin-top:24px;text-align:center">
+    <h2 style="font-family:var(--font-display);font-weight:400;font-size:28px;margin:0">لوحة صاحب التطبيق</h2>
+    <p class="note">سجّل دخول بحساب كوكل حقك. بس حسابك يفتح اللوحة.</p>
+    <button class="btn" data-act="login">دخول بحساب كوكل</button>
+    <p class="err" id="lerr" role="alert"></p>
+  </section>
+  <div id="papp" hidden>
 
   <nav class="ptabs" aria-label="الأقسام">
     <button data-act="tab" data-tab="ads" aria-pressed="true">الإعلانات</button>
@@ -142,7 +153,6 @@ textarea.in { resize: vertical; min-height: 64px; }
 
   <div id="v-ads">
   <section class="stats" id="stats"></section>
-  <p class="note">الأرقام والإعلانات هنا أمثلة تجريبية. بعد الربط بقاعدة البيانات تصير أرقام حقيقية من تطبيق الزبون.</p>
 
   <h2>إعلاناتك</h2>
   <div class="cards" id="list"></div>
@@ -176,55 +186,118 @@ textarea.in { resize: vertical; min-height: 64px; }
       <p class="err" id="s-err" role="alert"></p>
       <button class="btn" type="submit">أضفه وأعطيه كود</button>
     </form>
-    <p class="note">لما تضيفه يطلع له كود دخول من أربع أرقام، ورسالة جاهزة ترسلها له على الواتساب.</p>
+    <p class="note">لما تضيفه يطلع له كود دخول من ثمان خانات، ورسالة جاهزة ترسلها له على الواتساب.</p>
   </div>
 
   <div id="v-req" hidden>
     <h2>طلبات الانضمام</h2>
     <div class="cards" id="rlist"></div>
     <p class="note">الچايچي ما يظهر للزبائن إلا بعد ما توافق على طلبه.</p>
+    <p class="note" style="text-align:center"><button class="btn-line" data-act="logout">خروج</button></p>
   </div>
 </div>
 
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
 <script>
+var FBCONFIG = { apiKey: 'AIzaSyDT27G2lUpfUPcAMvRIPkllY3bzbQv87Eg', authDomain: 'chaychi-61eaf.firebaseapp.com', projectId: 'chaychi-61eaf', storageBucket: 'chaychi-61eaf.firebasestorage.app', messagingSenderId: '669532553284', appId: '1:669532553284:web:b999af1fc4824c7affbc11' };
+var ZONES = [
+  { id: 'zuhoor', name: 'حي الزهور' },
+  { id: 'jamia', name: 'حي الجامعة' },
+  { id: 'dawasa', name: 'الدواسة' }
+];
+var DRINKS = [
+  { id: 'glass', name: 'استكان چاي', price: 250 },
+  { id: 'milk', name: 'چاي بالحليب', price: 500 },
+  { id: 'mint', name: 'چاي بالنعناع', price: 500 },
+  { id: 'coffee', name: 'قهوة', price: 500 }
+];
+var HB_FRESH = 240000; /* a seller counts as available if his heartbeat is newer than 4 minutes */
+var fbOK = false, auth = null, db = null, FV = null, myUid = null;
+try {
+  firebase.initializeApp(FBCONFIG);
+  auth = firebase.auth();
+  db = firebase.firestore();
+  try { db.settings({ experimentalAutoDetectLongPolling: true, merge: true }); } catch (e) {}
+  FV = firebase.firestore.FieldValue;
+  fbOK = true;
+} catch (e) { fbOK = false; }
+function ensureAuth() {
+  return new Promise(function (res, rej) {
+    if (!fbOK) { rej(new Error('firebase')); return; }
+    var un = auth.onAuthStateChanged(function (u) {
+      un();
+      if (u) { myUid = u.uid; res(u); }
+      else auth.signInAnonymously().then(function (c) { myUid = c.user.uid; res(c.user); }, rej);
+    });
+  });
+}
+function dayKey(t) { var d = new Date(t || Date.now()); return d.getFullYear() + '-' + ('0' + (d.getMonth() + 1)).slice(-2) + '-' + ('0' + d.getDate()).slice(-2); }
+function haversine(a, b, c, d) {
+  var R = 6371000, rad = Math.PI / 180, dLat = (c - a) * rad, dLng = (d - b) * rad;
+  var x = Math.sin(dLat / 2) * Math.sin(dLat / 2) + Math.cos(a * rad) * Math.cos(c * rad) * Math.sin(dLng / 2) * Math.sin(dLng / 2);
+  return Math.round(2 * R * Math.atan2(Math.sqrt(x), Math.sqrt(1 - x)));
+}
+function showErr(msg) {
+  var b = document.getElementById('fberr');
+  if (!b) return;
+  b.textContent = msg; b.hidden = !msg;
+}
+function errText(e) {
+  var c = e && e.code || '';
+  if (c === 'permission-denied') return 'ما عندك صلاحية لهذا الإجراء.';
+  if (c === 'unavailable' || c === 'failed-precondition' && /offline/.test(e.message || '')) return 'ماكو اتصال بالإنترنت. جرّب مرة ثانية.';
+  if (c === 'auth/operation-not-allowed' || c === 'auth/admin-restricted-operation') return 'تسجيل الدخول المجهول مو مفعّل بـ Firebase.';
+  return 'صار خطأ: ' + (c || (e && e.message) || 'غير معروف');
+}
+function esc(t) { return String(t).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
+function $(id) { return document.getElementById(id); }
+function ar(n) { return String(n).replace(/\d/g, function (d) { return '٠١٢٣٤٥٦٧٨٩'[d]; }); }
+function money(n) { return ar(String(n).replace(/\B(?=(\d{3})+(?!\d))/g, ',')).replace(/,/g, '٬') + ' د.ع'; }
+function dist(m) { return m < 1000 ? ar(m) + ' م' : ar((m / 1000).toFixed(1)).replace('.', '٫') + ' كم'; }
+function glass(cls) { return '<svg class="' + (cls || 'ico') + '"><use href="#i-glass"/></svg>'; }
+function drinkName(id) { var d = DRINKS.filter(function (x) { return x.id === id; })[0]; return d ? d.name : id; }
+function zoneName(id) { var z = ZONES.filter(function (x) { return x.id === id; })[0]; return z ? z.name : id; }
+var CODE_CHARS = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+function newCode() { var s = '', a = new Uint32Array(8); (window.crypto || window.msCrypto).getRandomValues(a); for (var i = 0; i < 8; i++) s += CODE_CHARS[a[i] % CODE_CHARS.length]; return s; }
+function normCode(t) { return String(t || '').toUpperCase().replace(/[٠-٩]/g, function (d) { return '٠١٢٣٤٥٦٧٨٩'.indexOf(d); }).replace(/[^A-Z0-9]/g, ''); }
+
 document.documentElement.dir = 'rtl';
 document.documentElement.lang = 'ar';
 
-var ZONES = { all: 'كل المناطق', zuhoor: 'حي الزهور', jamia: 'حي الجامعة', dawasa: 'الدواسة' };
-function $(id) { return document.getElementById(id); }
-function ar(n) { return String(n).replace(/\d/g, function (d) { return '٠١٢٣٤٥٦٧٨٩'[d]; }); }
-function esc(t) { return String(t).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
+var SELLER_LINK = 'https://radhwanmalaah-sudo.github.io/chaychi/seller.html';
+var ZONE_OPTS = [{ id: 'all', name: 'كل المناطق' }].concat(ZONES);
 function iso(d) { return d.getFullYear() + '-' + ('0' + (d.getMonth() + 1)).slice(-2) + '-' + ('0' + d.getDate()).slice(-2); }
 function off(days) { var d = new Date(); d.setDate(d.getDate() + days); return iso(d); }
-function dshow(s) { return ar(s.slice(8, 10) + '/' + s.slice(5, 7)); }
+function dshow(s) { return s ? ar(s.slice(8, 10) + '/' + s.slice(5, 7)) : ''; }
+function adZones(a) {
+  var z = a.zones || [];
+  if (z.length >= ZONES.length) return 'كل المناطق';
+  return z.map(zoneName).join('، ');
+}
 
-var seq = 4;
-var ads = [
-  { id: 1, shop: 'مخبز الأمل', text: 'صمون وخبز حار كل صباح.', phone: '07701234567', zone: 'zuhoor', start: off(-6), end: off(8), on: true, views: 412, clicks: 23 },
-  { id: 2, shop: 'مكتبة الجامعة', text: 'تصوير وطباعة وتغليف بحث التخرج.', phone: '07705550123', zone: 'jamia', start: off(-2), end: off(12), on: true, views: 188, clicks: 9 },
-  { id: 3, shop: 'حلويات النخيل', text: 'كليچة وبقلاوة طازجة. خصم ١٠٪ للي يطلب من شايچي.', phone: '07709876543', zone: 'all', start: off(3), end: off(17), on: true, views: 0, clicks: 0 },
-  { id: 4, shop: 'مطعم أبو نوار', text: 'تكة وكباب. توصيل داخل الدواسة.', phone: '07703334455', zone: 'dawasa', start: off(-20), end: off(-5), on: true, views: 530, clicks: 31 }
-];
-var confirmId = 0;
+var ads = [], sellers = [], privs = {}, reqs = [];
+var confirmId = '', sconfirm = '', rconfirm = '', invite = null;
+var unsubs = [];
 
 function status(a) {
   var t = iso(new Date());
-  if (!a.on) return { k: 'off', t: 'موقوف' };
-  if (t < a.start) return { k: 'busy', t: 'ما بدأ' };
-  if (t > a.end) return { k: 'off', t: 'انتهى' };
+  if (a.active === false) return { k: 'off', t: 'موقوف' };
+  if (a.start && t < a.start) return { k: 'busy', t: 'ما بدأ' };
+  if (a.end && t > a.end) return { k: 'off', t: 'انتهى' };
   return { k: 'ok', t: 'شغال' };
 }
 function ctr(a) { return a.views ? ar((a.clicks / a.views * 100).toFixed(1)).replace('.', '٫') + '٪' : '—'; }
 
 function renderStats() {
   var live = ads.filter(function (a) { return status(a).k === 'ok'; }).length;
-  var v = ads.reduce(function (t, a) { return t + a.views; }, 0);
-  var c = ads.reduce(function (t, a) { return t + a.clicks; }, 0);
+  var v = ads.reduce(function (t, a) { return t + (a.views || 0); }, 0);
+  var c = ads.reduce(function (t, a) { return t + (a.clicks || 0); }, 0);
   $('stats').innerHTML = '<div class="stat"><span>إعلانات شغالة</span><b>' + ar(live) + '</b></div>' +
     '<div class="stat"><span>مرات الظهور</span><b>' + ar(v) + '</b></div>' +
     '<div class="stat"><span>ضغطوا عليه</span><b>' + ar(c) + '</b></div>';
 }
-
 function renderList() {
   if (!ads.length) {
     $('list').innerHTML = '<div class="empty"><strong>ماكو إعلانات</strong><p>أضف أول إعلان من الفورم تحت.</p></div>';
@@ -234,15 +307,14 @@ function renderList() {
     var st = status(a);
     return '<div class="card' + (st.k === 'off' ? ' dim' : '') + '"><div class="row"><div class="shop">' + esc(a.shop) + '</div><span class="pill ' + st.k + '">' + st.t + '</span></div>' +
       '<p class="txt">' + esc(a.text) + '</p>' +
-      '<div class="meta"><span>' + ZONES[a.zone] + '</span><span>' + dshow(a.start) + ' إلى ' + dshow(a.end) + '</span><span class="ltr">' + esc(a.phone) + '</span></div>' +
-      '<div class="nums"><div>ظهر<b>' + ar(a.views) + '</b></div><div>ضغطوا<b>' + ar(a.clicks) + '</b></div><div>نسبة الضغط<b>' + ctr(a) + '</b></div></div>' +
-      '<div class="btns"><button class="btn-line" data-act="toggle" data-id="' + a.id + '">' + (a.on ? 'وقّف' : 'شغّل') + '</button>' +
+      '<div class="meta"><span>' + esc(adZones(a)) + '</span><span>' + dshow(a.start) + ' إلى ' + dshow(a.end) + '</span><span class="ltr">' + esc(a.phone) + '</span></div>' +
+      '<div class="nums"><div>ظهر<b>' + ar(a.views || 0) + '</b></div><div>ضغطوا<b>' + ar(a.clicks || 0) + '</b></div><div>نسبة الضغط<b>' + ctr(a) + '</b></div></div>' +
+      '<div class="btns"><button class="btn-line" data-act="toggle" data-id="' + a.id + '">' + (a.active === false ? 'شغّل' : 'وقّف') + '</button>' +
       (confirmId === a.id
         ? '<button class="btn-line danger" data-act="del" data-id="' + a.id + '">تأكيد الحذف</button><button class="btn-line" data-act="cancel">لا</button>'
         : '<button class="btn-line" data-act="ask" data-id="' + a.id + '">احذف</button>') + '</div></div>';
   }).join('');
 }
-
 function renderPreview() {
   var shop = $('shop').value.trim() || 'اسم المحل';
   var text = $('text').value.trim() || 'نص الإعلان يطلع هنا.';
@@ -250,13 +322,14 @@ function renderPreview() {
   $('pv').innerHTML = '<span class="tag">إعلان</span><div class="shop">' + esc(shop) + '</div><p>' + esc(text) + '</p><div class="ph">' + esc(phone) + '</div>';
   $('cnt').textContent = ar($('text').value.length) + ' / ٨٠';
 }
-
 function renderAll() { renderStats(); renderList(); renderSellers(); renderReq(); }
 
-$('zone').innerHTML = Object.keys(ZONES).map(function (k) { return '<option value="' + k + '">' + ZONES[k] + '</option>'; }).join('');
+$('zone').innerHTML = ZONE_OPTS.map(function (z) { return '<option value="' + z.id + '">' + esc(z.name) + '</option>'; }).join('');
 $('start').value = off(0);
 $('end').value = off(14);
 ['shop', 'text', 'phone'].forEach(function (id) { $(id).addEventListener('input', renderPreview); });
+
+function fail(e) { showErr(errText(e)); }
 
 $('form').addEventListener('submit', function (e) {
   e.preventDefault();
@@ -270,57 +343,19 @@ $('form').addEventListener('submit', function (e) {
   else if (en < st) err = 'تاريخ النهاية قبل البداية.';
   $('err').textContent = err;
   if (err) return;
-  ads.unshift({ id: ++seq, shop: shop, text: text, phone: phone, zone: $('zone').value, start: st, end: en, on: true, views: 0, clicks: 0 });
-  $('shop').value = ''; $('text').value = ''; $('phone').value = '';
-  renderPreview(); renderAll();
-  window.scrollTo(0, 0);
-});
-
-document.addEventListener('click', function (e) {
-  var t = e.target.closest('[data-act]');
-  if (!t) return;
-  var a = t.dataset.act, id = Number(t.dataset.id);
-  if (a === 'toggle') { ads.forEach(function (x) { if (x.id === id) x.on = !x.on; }); confirmId = 0; }
-  else if (a === 'ask') confirmId = id;
-  else if (a === 'cancel') confirmId = 0;
-  else if (a === 'del') { ads = ads.filter(function (x) { return x.id !== id; }); confirmId = 0; }
-  else if (a === 'tab') { showTab(t.dataset.tab); return; }
-  else if (a === 'copy') { copyText(t.dataset.src, t); return; }
-  else if (a === 'stoggle') { sellers.forEach(function (x) { if (x.id === id) x.on = !x.on; }); sconfirm = 0; }
-  else if (a === 'sask') sconfirm = id;
-  else if (a === 'scancel') sconfirm = 0;
-  else if (a === 'sdel') { sellers = sellers.filter(function (x) { return x.id !== id; }); sconfirm = 0; invite = null; }
-  else if (a === 'invite') { invite = sellers.filter(function (x) { return x.id === id; })[0] || null; }
-  else if (a === 'approve') approveReq(id);
-  else if (a === 'rask') rconfirm = id;
-  else if (a === 'rcancel') rconfirm = 0;
-  else if (a === 'reject') { reqs = reqs.filter(function (x) { return x.id !== id; }); rconfirm = 0; }
-  renderAll();
+  var z = $('zone').value;
+  var zs = z === 'all' ? ZONES.map(function (x) { return x.id; }) : [z];
+  db.collection('ads').add({ shop: shop, text: text, phone: phone, zones: zs, start: st, end: en, active: true, views: 0, clicks: 0, createdAt: Date.now() }).then(function () {
+    $('shop').value = ''; $('text').value = ''; $('phone').value = '';
+    renderPreview(); window.scrollTo(0, 0);
+  }, fail);
 });
 
 /* ---------- sellers and join requests ---------- */
-var SELLER_LINK = 'https://radhwanmalaah-sudo.github.io/chaychi/seller.html';
-var SZONES = { zuhoor: 'حي الزهور', jamia: 'حي الجامعة', dawasa: 'الدواسة' };
-var DRINKS = { glass: 'استكان چاي', milk: 'چاي بالحليب', mint: 'چاي بالنعناع', coffee: 'قهوة' };
-var sellers = [
-  { id: 1, name: 'أبو أحمد', phone: '07701112233', zone: 'zuhoor', code: '1234', on: true },
-  { id: 2, name: 'أبو علي', phone: '07704445566', zone: 'zuhoor', code: '5821', on: true },
-  { id: 3, name: 'أبو مصطفى', phone: '07707778899', zone: 'jamia', code: '3306', on: true }
-];
-var reqs = [
-  { id: 1, name: 'أبو سعد', phone: '07712345678', zone: 'dawasa', drinks: ['glass', 'coffee'] },
-  { id: 2, name: 'حجي نوري', phone: '07715556677', zone: 'dawasa', drinks: ['glass'] }
-];
-var sseq = 3, rseq = 2, sconfirm = 0, rconfirm = 0, invite = null;
-
-function newCode() {
-  var c;
-  do { c = String(1000 + Math.floor(Math.random() * 9000)); } while (sellers.some(function (x) { return x.code === c; }));
-  return c;
-}
 function inviteText(x) {
   return 'أهلاً ' + x.name + '، حمّل تطبيق شايچي للچايچية من هذا الرابط: ' + SELLER_LINK + ' وادخل بالكود ' + x.code + '. افتحه من Chrome واختار "إضافة إلى الشاشة الرئيسية".';
 }
+function showCode(c) { return c ? c.slice(0, 4) + '-' + c.slice(4) : ''; }
 function copyText(srcId, btn) {
   var el = document.getElementById(srcId);
   if (!el) return;
@@ -336,29 +371,48 @@ function showTab(t) {
   Array.prototype.forEach.call(document.querySelectorAll('.ptabs button'), function (b) { b.setAttribute('aria-pressed', String(b.dataset.tab === t)); });
   window.scrollTo(0, 0);
 }
+function sellerView(s) { var p = privs[s.id] || {}; return { id: s.id, name: s.name, zone: s.zone, phone: p.phone || '', code: p.code || '', on: !s.blocked, online: !!s.online && (Date.now() - (s.hb || 0)) < HB_FRESH }; }
+function createSeller(name, phone, zone, menuIds, extra) {
+  var ref = db.collection('sellers').doc(), code = newCode(), now = Date.now(), menu = {};
+  menuIds.forEach(function (id) { var d = DRINKS.filter(function (x) { return x.id === id; })[0]; if (d) menu[id] = d.price; });
+  if (!Object.keys(menu).length) menu.glass = 250;
+  var batch = db.batch();
+  batch.set(ref, { name: name, zone: zone, online: false, blocked: false, menu: menu, hb: 0, createdAt: now });
+  batch.set(db.collection('sellerPrivate').doc(ref.id), { phone: phone, code: code, uid: '', createdAt: now });
+  batch.set(db.collection('sellerCodes').doc(code), { sid: ref.id });
+  if (extra) extra(batch, code);
+  return batch.commit().then(function () { return { id: ref.id, name: name, phone: phone, zone: zone, code: code }; });
+}
 function approveReq(id) {
   var r = reqs.filter(function (x) { return x.id === id; })[0];
   if (!r) return;
-  var x = { id: ++sseq, name: r.name, phone: r.phone, zone: r.zone, code: newCode(), on: true };
-  sellers.push(x);
-  reqs = reqs.filter(function (y) { return y.id !== id; });
-  invite = x;
-  showTab('sellers');
+  createSeller(r.name, r.phone, r.zone, r.drinks || ['glass'], function (batch, code) {
+    batch.update(db.collection('joinRequests').doc(id), { status: 'approved', code: code, approvedAt: Date.now() });
+  }).then(function (x) { invite = x; showTab('sellers'); renderAll(); }, fail);
+}
+function deleteSeller(id) {
+  var p = privs[id], batch = db.batch();
+  batch.delete(db.collection('sellers').doc(id));
+  batch.delete(db.collection('sellerPrivate').doc(id));
+  if (p && p.code) batch.delete(db.collection('sellerCodes').doc(p.code));
+  batch.commit().then(function () { sconfirm = ''; if (invite && invite.id === id) invite = null; renderAll(); }, fail);
 }
 
 function renderSellers() {
   var slot = $('invite-slot');
   if (invite) {
-    slot.innerHTML = '<div class="invite"><h3>أرسل الدعوة لـ ' + esc(invite.name) + '</h3><div class="row"><span style="color:var(--ink-2);font-size:14px">كود الدخول</span><span class="codeb">' + esc(invite.code) + '</span></div>' +
+    slot.innerHTML = '<div class="invite"><h3>أرسل الدعوة لـ ' + esc(invite.name) + '</h3><div class="row"><span style="color:var(--ink-2);font-size:14px">كود الدخول</span><span class="codeb">' + esc(showCode(invite.code)) + '</span></div>' +
       '<textarea id="invtxt" readonly></textarea><div class="btns"><button class="btn-ok" data-act="copy" data-src="invtxt">انسخ الرسالة</button></div></div>';
     $('invtxt').value = inviteText(invite);
   } else { slot.innerHTML = ''; }
-  if (!sellers.length) { $('slist').innerHTML = '<div class="empty"><strong>ماكو چايچية</strong><p>أضف أول واحد من الفورم تحت.</p></div>'; return; }
-  $('slist').innerHTML = sellers.map(function (x) {
+  var rows = sellers.map(sellerView);
+  if (!rows.length) { $('slist').innerHTML = '<div class="empty"><strong>ماكو چايچية</strong><p>أضف أول واحد من الفورم تحت.</p></div>'; return; }
+  $('slist').innerHTML = rows.map(function (x) {
     return '<div class="card' + (x.on ? '' : ' dim') + '"><div class="row"><div><div class="shop">' + esc(x.name) + '</div>' +
-      '<div class="meta"><span>' + SZONES[x.zone] + '</span><span class="ltr">' + esc(x.phone) + '</span></div></div>' +
-      '<span class="codeb">' + esc(x.code) + '</span></div>' +
-      '<div class="row"><span class="pill ' + (x.on ? 'ok' : 'off') + '">' + (x.on ? 'شغال' : 'موقوف') + '</span></div>' +
+      '<div class="meta"><span>' + esc(zoneName(x.zone)) + '</span><span class="ltr">' + esc(x.phone) + '</span></div></div>' +
+      '<span class="codeb" style="font-size:18px">' + esc(showCode(x.code)) + '</span></div>' +
+      '<div class="row"><span class="pill ' + (x.on ? 'ok' : 'off') + '">' + (x.on ? 'شغال' : 'موقوف') + '</span>' +
+      (x.online ? '<span class="pill ok">متصل الحين</span>' : '') + '</div>' +
       '<div class="btns"><button class="btn-line" data-act="invite" data-id="' + x.id + '">رسالة الدعوة</button>' +
       '<button class="btn-line" data-act="stoggle" data-id="' + x.id + '">' + (x.on ? 'وقّف' : 'شغّل') + '</button>' +
       (sconfirm === x.id
@@ -366,15 +420,14 @@ function renderSellers() {
         : '<button class="btn-line" data-act="sask" data-id="' + x.id + '">احذف</button>') + '</div></div>';
   }).join('');
 }
-
 function renderReq() {
   $('bd').hidden = !reqs.length;
   $('bd').textContent = ar(reqs.length);
   if (!reqs.length) { $('rlist').innerHTML = '<div class="empty"><strong>ماكو طلبات</strong><p>طلبات الانضمام الجديدة تطلع هنا.</p></div>'; return; }
   $('rlist').innerHTML = reqs.map(function (r) {
     return '<div class="card"><div class="row"><div class="shop">' + esc(r.name) + '</div><span class="pill busy">ينتظر موافقتك</span></div>' +
-      '<div class="meta"><span>' + SZONES[r.zone] + '</span><span class="ltr">' + esc(r.phone) + '</span></div>' +
-      '<div class="chips">' + r.drinks.map(function (d) { return '<span>' + DRINKS[d] + '</span>'; }).join('') + '</div>' +
+      '<div class="meta"><span>' + esc(zoneName(r.zone)) + '</span><span class="ltr">' + esc(r.phone) + '</span></div>' +
+      '<div class="chips">' + (r.drinks || []).map(function (d) { return '<span>' + esc(drinkName(d)) + '</span>'; }).join('') + '</div>' +
       '<div class="btns"><button class="btn-ok" data-act="approve" data-id="' + r.id + '">وافق وأعطه كود</button>' +
       (rconfirm === r.id
         ? '<button class="btn-line danger" data-act="reject" data-id="' + r.id + '">تأكيد الرفض</button><button class="btn-line" data-act="rcancel">لا</button>'
@@ -382,7 +435,7 @@ function renderReq() {
   }).join('');
 }
 
-$('s-zone').innerHTML = Object.keys(SZONES).map(function (k) { return '<option value="' + k + '">' + SZONES[k] + '</option>'; }).join('');
+$('s-zone').innerHTML = ZONES.map(function (z) { return '<option value="' + z.id + '">' + esc(z.name) + '</option>'; }).join('');
 $('sform').addEventListener('submit', function (e) {
   e.preventDefault();
   var name = $('s-name').value.trim(), phone = $('s-phone').value.trim().replace(/[\s-]/g, '');
@@ -391,14 +444,85 @@ $('sform').addEventListener('submit', function (e) {
   else if (!/^\+?\d{9,14}$/.test(phone)) err = 'الرقم لازم يكون أرقام فقط، مثال 07701234567.';
   $('s-err').textContent = err;
   if (err) return;
-  var x = { id: ++sseq, name: name, phone: phone, zone: $('s-zone').value, code: newCode(), on: true };
-  sellers.push(x); invite = x;
-  $('s-name').value = ''; $('s-phone').value = '';
+  createSeller(name, phone, $('s-zone').value, ['glass']).then(function (x) {
+    invite = x; $('s-name').value = ''; $('s-phone').value = ''; renderAll();
+  }, fail);
+});
+
+document.addEventListener('click', function (e) {
+  var t = e.target.closest('[data-act]');
+  if (!t) return;
+  var a = t.dataset.act, id = t.dataset.id;
+  if (a === 'toggle') { var ad = ads.filter(function (x) { return x.id === id; })[0]; if (ad) db.collection('ads').doc(id).update({ active: ad.active === false }).catch(fail); confirmId = ''; }
+  else if (a === 'ask') confirmId = id;
+  else if (a === 'cancel') confirmId = '';
+  else if (a === 'del') { db.collection('ads').doc(id).delete().catch(fail); confirmId = ''; }
+  else if (a === 'tab') { showTab(t.dataset.tab); return; }
+  else if (a === 'copy') { copyText(t.dataset.src, t); return; }
+  else if (a === 'stoggle') {
+    var s = sellers.filter(function (x) { return x.id === id; })[0];
+    if (s) db.collection('sellers').doc(id).update(s.blocked ? { blocked: false } : { blocked: true, online: false }).catch(fail);
+    sconfirm = '';
+  }
+  else if (a === 'sask') sconfirm = id;
+  else if (a === 'scancel') sconfirm = '';
+  else if (a === 'sdel') { deleteSeller(id); return; }
+  else if (a === 'invite') { var sv = sellers.filter(function (x) { return x.id === id; })[0]; invite = sv ? sellerView(sv) : null; }
+  else if (a === 'approve') { approveReq(id); return; }
+  else if (a === 'rask') rconfirm = id;
+  else if (a === 'rcancel') rconfirm = '';
+  else if (a === 'reject') { db.collection('joinRequests').doc(id).update({ status: 'rejected' }).catch(fail); rconfirm = ''; }
+  else if (a === 'login') signIn();
+  else if (a === 'logout') signOut();
   renderAll();
 });
 
+/* ---------- login (Google) and live data ---------- */
+function stopListening() { unsubs.forEach(function (u) { u(); }); unsubs = []; }
+function listenAll() {
+  stopListening();
+  var bad = function (e) {
+    if (e && e.code === 'permission-denied') { denied(); } else fail(e);
+  };
+  unsubs.push(db.collection('ads').orderBy('createdAt', 'desc').onSnapshot(function (s) { ads = s.docs.map(function (d) { var x = d.data(); x.id = d.id; return x; }); renderAll(); }, bad));
+  unsubs.push(db.collection('sellers').onSnapshot(function (s) { sellers = s.docs.map(function (d) { var x = d.data(); x.id = d.id; return x; }); renderAll(); }, bad));
+  unsubs.push(db.collection('sellerPrivate').onSnapshot(function (s) { privs = {}; s.docs.forEach(function (d) { privs[d.id] = d.data(); }); renderAll(); }, bad));
+  unsubs.push(db.collection('joinRequests').where('status', '==', 'pending').onSnapshot(function (s) { reqs = s.docs.map(function (d) { var x = d.data(); x.id = d.id; return x; }); renderAll(); }, bad));
+}
+function showApp(user) {
+  $('plogin').hidden = true; $('papp').hidden = false;
+  $('who').textContent = user.email || 'صاحب التطبيق';
+  showErr('');
+  listenAll();
+}
+function denied() {
+  stopListening();
+  $('papp').hidden = true; $('plogin').hidden = false;
+  $('lerr').textContent = 'هذا الحساب مو صاحب التطبيق. سجّل بحساب كوكل الصحيح.';
+  auth.signOut();
+}
+function signIn() {
+  $('lerr').textContent = '';
+  var prov = new firebase.auth.GoogleAuthProvider();
+  auth.signInWithPopup(prov).catch(function (e) {
+    if (e && (e.code === 'auth/popup-blocked' || e.code === 'auth/operation-not-supported-in-this-environment')) { auth.signInWithRedirect(prov); return; }
+    if (e && (e.code === 'auth/popup-closed-by-user' || e.code === 'auth/cancelled-popup-request')) return;
+    $('lerr').textContent = e && e.code === 'auth/unauthorized-domain' ? 'أضف الدومين radhwanmalaah-sudo.github.io بـ Authorized domains في Firebase.' : errText(e);
+  });
+}
+function signOut() { stopListening(); auth.signOut(); }
+
 renderPreview();
 renderAll();
+if (!fbOK) { $('lerr').textContent = 'تعذر تحميل Firebase. تأكد من الإنترنت.'; }
+else {
+  auth.getRedirectResult().catch(function (e) { $('lerr').textContent = errText(e); });
+  auth.onAuthStateChanged(function (u) {
+    if (u && !u.isAnonymous) showApp(u);
+    else { stopListening(); $('papp').hidden = true; $('plogin').hidden = false; }
+  });
+}
+
 </script>
 </body>
 </html>

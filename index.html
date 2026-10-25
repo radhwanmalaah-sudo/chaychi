@@ -185,6 +185,8 @@ label.f { display: block; font-weight: 600; font-size: 14px; margin-bottom: 6px;
 .sheet-f .total { font-size: 13px; color: var(--ink-2); }
 .sheet-f .total b { display: block; font-size: 20px; color: var(--ink); font-family: var(--font-display); font-weight: 400; }
 .sheet-f .btn { padding: 13px 26px; font-size: 16px; }
+.fberr{background:var(--tea);color:var(--tea-ink);border-radius:12px;padding:10px 14px;margin:10px 0 0;font-size:14px;font-weight:600}
+.fberr[hidden]{display:none}
 </style>
 </head>
 <body>
@@ -227,13 +229,15 @@ label.f { display: block; font-weight: 600; font-size: 14px; margin-bottom: 6px;
     </label>
     <button class="snd" id="snd" data-act="snd" aria-pressed="true" aria-label="الصوت شغال"></button>
   </header>
+  <div class="fberr" id="fberr" hidden role="alert"></div>
 
   <main id="v-list">
+    <button class="btn-line" data-act="locate" style="margin-bottom:10px">حدد موقعي</button>
+    <p class="hint" id="locmsg"></p>
     <section id="near"></section>
     <h2>باقي الچايچية بالمنطقة</h2>
     <div class="list" id="list"></div>
     <div id="adslot"></div>
-    <p class="demo-note">أسماء الچايچية والمسافات والأسعار هنا أمثلة تجريبية.</p>
     <button class="btn-line" data-act="test" style="margin-top:10px">جرّب الصوت</button>
     <p class="demo-note">إذا ما سمعت شي: تأكد الجوال مو على صامت وارفع صوت الوسائط.</p>
   </main>
@@ -251,7 +255,7 @@ label.f { display: block; font-weight: 600; font-size: 14px; margin-bottom: 6px;
       <div class="items" id="items"></div>
       <label class="f" for="loc">وين أنت؟</label>
       <input class="in" id="loc" type="text" maxlength="80" placeholder="مثال: قدام بوابة الجامعة">
-      <p class="hint">بالنسخة الجاية موقعك يتحدد تلقائياً.</p>
+      <button class="btn-line" type="button" data-act="locate" style="margin-top:8px">استخدم موقعي الحالي</button><p class="hint" id="locmsg2"></p>
       <fieldset class="pay"><legend>طريقة الدفع</legend>
         <label class="opt"><input type="radio" name="pay" value="now" checked><span><b>عند التسليم</b><small>تدفع نقداً لما يوصلك الچايچي.</small></span></label>
         <label class="opt"><input type="radio" name="pay" value="later"><span><b>وقت لمّ الاستكانات</b><small>تشرب، والچايچي يرجع ياخذ الاستكانات الفارغة والمبلغ.</small></span></label>
@@ -265,72 +269,87 @@ label.f { display: block; font-weight: 600; font-size: 14px; margin-bottom: 6px;
   </div>
 </div>
 
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
 <script>
-document.documentElement.dir = 'rtl';
-document.documentElement.lang = 'ar';
-
+var FBCONFIG = { apiKey: 'AIzaSyDT27G2lUpfUPcAMvRIPkllY3bzbQv87Eg', authDomain: 'chaychi-61eaf.firebaseapp.com', projectId: 'chaychi-61eaf', storageBucket: 'chaychi-61eaf.firebasestorage.app', messagingSenderId: '669532553284', appId: '1:669532553284:web:b999af1fc4824c7affbc11' };
 var ZONES = [
-  { id: 'zuhoor', name: 'حي الزهور', sellers: [
-    { id: 'z1', name: 'أبو أحمد', m: 250, eta: 3, ok: true, rate: 4.8, menu: ['glass', 'milk'] },
-    { id: 'z2', name: 'أبو علي', m: 480, eta: 6, ok: true, rate: 4.6, menu: ['glass'] },
-    { id: 'z3', name: 'حجي ياسين', m: 900, eta: 11, ok: false, rate: 4.9, menu: ['glass', 'coffee'] }
-  ]},
-  { id: 'jamia', name: 'حي الجامعة', sellers: [
-    { id: 'j1', name: 'أبو مصطفى', m: 180, eta: 2, ok: true, rate: 4.7, menu: ['glass', 'milk', 'coffee'] },
-    { id: 'j2', name: 'عمو خالد', m: 520, eta: 7, ok: true, rate: 4.5, menu: ['glass', 'mint'] },
-    { id: 'j3', name: 'أبو زيد', m: 1100, eta: 14, ok: false, rate: 4.4, menu: ['glass'] }
-  ]},
-  { id: 'dawasa', name: 'الدواسة', sellers: [
-    { id: 'd1', name: 'أبو عمر', m: 320, eta: 4, ok: false, rate: 4.8, menu: ['glass', 'milk'] },
-    { id: 'd2', name: 'أبو سعد', m: 640, eta: 8, ok: true, rate: 4.6, menu: ['glass', 'coffee', 'mint'] },
-    { id: 'd3', name: 'حجي نوري', m: 780, eta: 9, ok: true, rate: 4.3, menu: ['glass'] }
-  ]}
+  { id: 'zuhoor', name: 'حي الزهور' },
+  { id: 'jamia', name: 'حي الجامعة' },
+  { id: 'dawasa', name: 'الدواسة' }
 ];
-var MENU = [
+var DRINKS = [
   { id: 'glass', name: 'استكان چاي', price: 250 },
   { id: 'milk', name: 'چاي بالحليب', price: 500 },
   { id: 'mint', name: 'چاي بالنعناع', price: 500 },
   { id: 'coffee', name: 'قهوة', price: 500 }
 ];
-var STEPS = ['وصل الطلب للچايچي', 'الچايچي قبل طلبك', 'الچايچي بالطريق إلك', 'وصل الچايچي'];
-var STEP_PAY = 'لمّ الاستكانات والدفع';
-
-/* ads: the owner adds these from the ads panel. Here they are sample ads so the slot shows how it will look. */
-var ADS = [
-  { shop: 'مخبز الأمل', text: 'صمون وخبز حار كل صباح.', phone: '07701234567', zones: ['zuhoor'] },
-  { shop: 'حلويات النخيل', text: 'كليچة وبقلاوة طازجة. خصم ١٠٪ للي يطلب من شايچي.', phone: '07709876543', zones: ['zuhoor', 'jamia'] },
-  { shop: 'مكتبة الجامعة', text: 'تصوير وطباعة وتغليف بحث التخرج.', phone: '07705550123', zones: ['jamia'] },
-  { shop: 'مطعم أبو نوار', text: 'تكة وكباب. توصيل داخل الدواسة.', phone: '07703334455', zones: ['dawasa'] },
-  { shop: 'صيدلية الشفاء', text: 'مفتوحة لين ١٢ الليل.', phone: '07706667788', zones: ['zuhoor', 'jamia', 'dawasa'] }
-];
-var adIdx = 0, adOpen = false;
-
-var zoneId = 'zuhoor';
-try { var saved = localStorage.getItem('chaychi-zone'); if (saved) zoneId = saved; } catch (e) {}
-if (!ZONES.some(function (z) { return z.id === zoneId; })) zoneId = 'zuhoor';
-
-var cart = {}, pick = null, order = null, timers = [];
-
+var HB_FRESH = 240000; /* a seller counts as available if his heartbeat is newer than 4 minutes */
+var fbOK = false, auth = null, db = null, FV = null, myUid = null;
+try {
+  firebase.initializeApp(FBCONFIG);
+  auth = firebase.auth();
+  db = firebase.firestore();
+  try { db.settings({ experimentalAutoDetectLongPolling: true, merge: true }); } catch (e) {}
+  FV = firebase.firestore.FieldValue;
+  fbOK = true;
+} catch (e) { fbOK = false; }
+function ensureAuth() {
+  return new Promise(function (res, rej) {
+    if (!fbOK) { rej(new Error('firebase')); return; }
+    var un = auth.onAuthStateChanged(function (u) {
+      un();
+      if (u) { myUid = u.uid; res(u); }
+      else auth.signInAnonymously().then(function (c) { myUid = c.user.uid; res(c.user); }, rej);
+    });
+  });
+}
+function dayKey(t) { var d = new Date(t || Date.now()); return d.getFullYear() + '-' + ('0' + (d.getMonth() + 1)).slice(-2) + '-' + ('0' + d.getDate()).slice(-2); }
+function haversine(a, b, c, d) {
+  var R = 6371000, rad = Math.PI / 180, dLat = (c - a) * rad, dLng = (d - b) * rad;
+  var x = Math.sin(dLat / 2) * Math.sin(dLat / 2) + Math.cos(a * rad) * Math.cos(c * rad) * Math.sin(dLng / 2) * Math.sin(dLng / 2);
+  return Math.round(2 * R * Math.atan2(Math.sqrt(x), Math.sqrt(1 - x)));
+}
+function showErr(msg) {
+  var b = document.getElementById('fberr');
+  if (!b) return;
+  b.textContent = msg; b.hidden = !msg;
+}
+function errText(e) {
+  var c = e && e.code || '';
+  if (c === 'permission-denied') return 'ما عندك صلاحية لهذا الإجراء.';
+  if (c === 'unavailable' || c === 'failed-precondition' && /offline/.test(e.message || '')) return 'ماكو اتصال بالإنترنت. جرّب مرة ثانية.';
+  if (c === 'auth/operation-not-allowed' || c === 'auth/admin-restricted-operation') return 'تسجيل الدخول المجهول مو مفعّل بـ Firebase.';
+  return 'صار خطأ: ' + (c || (e && e.message) || 'غير معروف');
+}
+function esc(t) { return String(t).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
 function $(id) { return document.getElementById(id); }
 function ar(n) { return String(n).replace(/\d/g, function (d) { return '٠١٢٣٤٥٦٧٨٩'[d]; }); }
 function money(n) { return ar(String(n).replace(/\B(?=(\d{3})+(?!\d))/g, ',')).replace(/,/g, '٬') + ' د.ع'; }
 function dist(m) { return m < 1000 ? ar(m) + ' م' : ar((m / 1000).toFixed(1)).replace('.', '٫') + ' كم'; }
-function mins(n) { return ar(n) + ' دقيقة'; }
-function zone() { return ZONES.filter(function (z) { return z.id === zoneId; })[0]; }
-function sorted() { return zone().sellers.slice().sort(function (a, b) { return a.m - b.m; }); }
 function glass(cls) { return '<svg class="' + (cls || 'ico') + '"><use href="#i-glass"/></svg>'; }
-function drinksHtml(s) {
-  return '<div class="drinks">' + MENU.filter(function (m) { return s.menu.indexOf(m.id) > -1; }).map(function (m) { return '<span>' + m.name + '</span>'; }).join('') + '</div>';
-}
+function drinkName(id) { var d = DRINKS.filter(function (x) { return x.id === id; })[0]; return d ? d.name : id; }
+function zoneName(id) { var z = ZONES.filter(function (x) { return x.id === id; })[0]; return z ? z.name : id; }
+var CODE_CHARS = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+function newCode() { var s = '', a = new Uint32Array(8); (window.crypto || window.msCrypto).getRandomValues(a); for (var i = 0; i < 8; i++) s += CODE_CHARS[a[i] % CODE_CHARS.length]; return s; }
+function normCode(t) { return String(t || '').toUpperCase().replace(/[٠-٩]/g, function (d) { return '٠١٢٣٤٥٦٧٨٩'.indexOf(d); }).replace(/[^A-Z0-9]/g, ''); }
 
-/* sound: a short chime when the order status changes. Browsers only allow audio after the first tap. */
-var soundOn = true;
-try { if (localStorage.getItem('chaychi-snd') === 'off') soundOn = false; } catch (e) {}
+document.documentElement.dir = 'rtl';
+document.documentElement.lang = 'ar';
+
+var STEPS = ['وصل الطلب للچايچي', 'الچايچي قبل طلبك', 'الچايچي بالطريق إلك', 'وصل الچايچي'];
+var STEP_PAY = 'لمّ الاستكانات والدفع';
+var ORDER_WAIT = 150000; /* ms: an unanswered request is cancelled after this */
+var SND_KEY = 'chaychi-snd', SND_TEST = 'ok';
 var PATTERNS = {
   ok: { f: [660, 880], g: 0.16, d: 0.4, v: 0.6 },
   done: { f: [523, 659, 784, 1047], g: 0.16, d: 0.4, v: 0.6 }
 };
 var VIBE = { ok: 120, done: [200, 100, 200] };
+/* sound: a short chime when the order status changes. Browsers only allow audio after the first tap. */
+var soundOn = true;
+try { if (localStorage.getItem(SND_KEY) === 'off') soundOn = false; } catch (e) {}
 var AC = null, AUD = null, WAVS = {};
 /* sounds are built as small WAV files and played through an audio element, which phones treat as media (it plays even when ring/silent rules mute Web Audio). Web Audio stays as a fallback. */
 function wav(freqs, gap, dur, vol) {
@@ -414,17 +433,55 @@ function renderSnd() {
 }
 function toggleSound() {
   soundOn = !soundOn;
-  try { localStorage.setItem('chaychi-snd', soundOn ? 'on' : 'off'); } catch (e) {}
+  try { localStorage.setItem(SND_KEY, soundOn ? 'on' : 'off'); } catch (e) {}
   renderSnd();
-  if (soundOn) chime('ok');
+  if (soundOn) chime(SND_TEST);
 }
 
-function esc(t) { return String(t).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
-function zoneAds() { return ADS.filter(function (a) { return a.zones.indexOf(zoneId) > -1; }); }
+
+var zoneId = ZONES[0].id;
+try { var savedZone = localStorage.getItem('chaychi-zone'); if (savedZone) zoneId = savedZone; } catch (e) {}
+if (!ZONES.some(function (z) { return z.id === zoneId; })) zoneId = ZONES[0].id;
+
+var sellers = [], ads = [], myLoc = null, adIdx = 0, adOpen = false, adSeen = {}, adClicked = {};
+var cart = {}, pick = null, order = null, orderId = null, lastStage = null;
+var unsubSellers = null, unsubAds = null, unsubOrder = null, loaded = false;
+try { orderId = localStorage.getItem('chaychi-order') || null; } catch (e) {}
+
+function mins(n) { return ar(n) + ' دقيقة'; }
+function menuIds(s) { return Object.keys(s.menu || {}).filter(function (k) { return DRINKS.some(function (d) { return d.id === k; }); }); }
+function isOk(s) { return !s.blocked && !!s.online && menuIds(s).length > 0 && (Date.now() - (s.hb || 0)) < HB_FRESH; }
+function decorate(s) {
+  var o = { id: s.id, name: s.name, menu: s.menu || {}, ok: isOk(s), rate: s.rate || 0, m: null, eta: null, lat: s.lat, lng: s.lng };
+  if (myLoc && typeof s.lat === 'number' && typeof s.lng === 'number') {
+    o.m = haversine(myLoc.lat, myLoc.lng, s.lat, s.lng);
+    o.eta = Math.max(1, Math.round(o.m / 80));
+  }
+  return o;
+}
+function sorted() {
+  return sellers.map(decorate).sort(function (a, b) {
+    if (a.ok !== b.ok) return a.ok ? -1 : 1;
+    if (a.m === null && b.m === null) return a.name < b.name ? -1 : 1;
+    if (a.m === null) return 1;
+    if (b.m === null) return -1;
+    return a.m - b.m;
+  });
+}
+function drinksHtml(s) {
+  return '<div class="drinks">' + menuIds(s).map(function (id) { return '<span>' + esc(drinkName(id)) + '</span>'; }).join('') + '</div>';
+}
+
+/* ---------- ads ---------- */
+function zoneAds() { var t = dayKey(); return ads.filter(function (a) { return a.active !== false && (!a.start || t >= a.start) && (!a.end || t <= a.end); }); }
 function renderAd() {
   var list = zoneAds(), el = $('adslot');
   if (!list.length) { el.innerHTML = '<div class="adc empty-ad"><div class="top2"><span class="tag">إعلان</span></div>مساحة إعلان فاضية بمنطقتك.</div>'; return; }
   var a = list[adIdx % list.length];
+  if (!adSeen[a.id]) {
+    adSeen[a.id] = 1;
+    db.collection('ads').doc(a.id).update({ views: FV.increment(1) }).catch(function () {});
+  }
   el.innerHTML = '<button class="adc" data-act="ad" aria-expanded="' + adOpen + '"><div class="top2"><span class="tag">إعلان</span></div>' +
     '<div class="shop">' + esc(a.shop) + '</div><p class="txt">' + esc(a.text) + '</p>' +
     (adOpen ? '<div class="ph"><span>' + esc(a.phone) + '</span><span class="hintx" style="direction:rtl">رقم المحل</span></div>' : '<div class="hintx">اضغط لرقم المحل</div>') + '</button>';
@@ -434,56 +491,105 @@ setInterval(function () {
   adIdx += 1;
   renderAd();
 }, 8000);
-
-function renderZones() {
-  $('zone').innerHTML = ZONES.map(function (z) {
-    return '<option value="' + z.id + '"' + (z.id === zoneId ? ' selected' : '') + '>' + z.name + '</option>';
-  }).join('');
+function openAd() {
+  adOpen = !adOpen;
+  var list = zoneAds();
+  if (adOpen && list.length) {
+    var a = list[adIdx % list.length];
+    if (!adClicked[a.id]) { adClicked[a.id] = 1; db.collection('ads').doc(a.id).update({ clicks: FV.increment(1) }).catch(function () {}); }
+  }
+  renderAd();
 }
 
+/* ---------- zones, sellers ---------- */
+function renderZones() {
+  $('zone').innerHTML = ZONES.map(function (z) {
+    return '<option value="' + z.id + '"' + (z.id === zoneId ? ' selected' : '') + '>' + esc(z.name) + '</option>';
+  }).join('');
+}
 function renderList() {
   renderAd();
+  if (!loaded) { $('near').innerHTML = '<div class="empty"><strong>لحظة...</strong><p>نجيب الچايچية.</p></div>'; $('list').innerHTML = ''; return; }
   var all = sorted();
   var nearest = all.filter(function (s) { return s.ok; })[0];
   var rest = all.filter(function (s) { return s !== nearest; });
+  var known = nearest && nearest.m !== null;
   $('near').innerHTML = nearest
     ? '<div class="near">' + glass('deco') +
-      '<div class="eyebrow">أقرب چايچي متاح إلك</div>' +
-      '<div class="nm">' + nearest.name + '</div>' +
-      '<div class="eta"><b>' + ar(nearest.eta) + '</b><span>دقايق وصوله</span></div>' +
-      '<div class="meta" style="margin-bottom:8px">يبعد عنك ' + dist(nearest.m) + ' · تقييم ' + ar(nearest.rate).replace('.', '٫') + '</div>' + drinksHtml(nearest) +
-      '<button class="btn-inv" data-act="order" data-id="' + nearest.id + '">اطلب منه</button></div>'
-    : '<div class="empty"><strong>كل الچايچية مشغولين</strong><p>جرّب بعد شوية أو غيّر المنطقة.</p></div>';
+      '<div class="eyebrow">' + (known ? 'أقرب چايچي متاح إلك' : 'چايچي متاح الحين') + '</div>' +
+      '<div class="nm">' + esc(nearest.name) + '</div>' +
+      (known ? '<div class="eta"><b>' + ar(nearest.eta) + '</b><span>دقايق وصوله</span></div>' +
+        '<div class="meta" style="margin-bottom:8px">يبعد عنك ' + dist(nearest.m) + '</div>' : '<div class="meta" style="margin-bottom:8px">اضغط "حدد موقعي" حتى نعرف أقرب واحد إلك.</div>') +
+      drinksHtml(nearest) +
+      '<button class="btn-inv" data-act="order" data-id="' + esc(nearest.id) + '">اطلب منه</button></div>'
+    : '<div class="empty"><strong>' + (all.length ? 'كل الچايچية مشغولين' : 'ماكو چايچية بالمنطقة بعد') + '</strong><p>' + (all.length ? 'جرّب بعد شوية أو غيّر المنطقة.' : 'جرّب منطقة ثانية.') + '</p></div>';
   $('list').innerHTML = rest.map(function (s) {
     return '<div class="seller"><div class="avatar">' + glass() + '</div><div>' +
-      '<div class="nm">' + s.name + '</div><div class="meta"><span>' + dist(s.m) + '</span><span>' + mins(s.eta) + '</span>' +
-      '<span class="pill ' + (s.ok ? 'ok' : 'busy') + '">' + (s.ok ? 'متاح' : 'مشغول') + '</span></div>' + drinksHtml(s) + '</div>' +
-      '<button class="btn" data-act="order" data-id="' + s.id + '"' + (s.ok ? '' : ' disabled') + '>' + (s.ok ? 'اطلب' : 'مشغول') + '</button></div>';
+      '<div class="nm">' + esc(s.name) + '</div><div class="meta">' + (s.m !== null ? '<span>' + dist(s.m) + '</span><span>' + mins(s.eta) + '</span>' : '') +
+      '<span class="pill ' + (s.ok ? 'ok' : 'busy') + '">' + (s.ok ? 'متاح' : 'مو متاح') + '</span></div>' + drinksHtml(s) + '</div>' +
+      '<button class="btn" data-act="order" data-id="' + esc(s.id) + '"' + (s.ok ? '' : ' disabled') + '>' + (s.ok ? 'اطلب' : 'مشغول') + '</button></div>';
   }).join('');
 }
+function listenZone() {
+  if (unsubSellers) unsubSellers();
+  if (unsubAds) unsubAds();
+  sellers = []; ads = []; loaded = false; adIdx = 0; adOpen = false;
+  renderList();
+  unsubSellers = db.collection('sellers').where('zone', '==', zoneId).onSnapshot(function (snap) {
+    sellers = snap.docs.map(function (d) { var x = d.data(); x.id = d.id; return x; });
+    loaded = true; showErr('');
+    renderList();
+  }, function (e) { loaded = true; showErr(errText(e)); renderList(); });
+  unsubAds = db.collection('ads').where('zones', 'array-contains', zoneId).onSnapshot(function (snap) {
+    ads = snap.docs.map(function (d) { var x = d.data(); x.id = d.id; return x; });
+    renderAd();
+  }, function () {});
+}
+setInterval(function () { if (!document.hidden && loaded) renderList(); }, 30000);
 
-function findSeller(id) {
-  for (var i = 0; i < ZONES.length; i++) for (var j = 0; j < ZONES[i].sellers.length; j++) if (ZONES[i].sellers[j].id === id) return ZONES[i].sellers[j];
+/* ---------- location ---------- */
+function locate(done) {
+  var msg = $('locmsg');
+  if (!navigator.geolocation) { if (msg) msg.textContent = 'جهازك ما يدعم تحديد الموقع. اكتب مكانك يدوياً.'; if (done) done(false); return; }
+  if (msg) msg.textContent = 'نحدد موقعك...';
+  navigator.geolocation.getCurrentPosition(function (p) {
+    myLoc = { lat: p.coords.latitude, lng: p.coords.longitude };
+    if (msg) msg.textContent = 'تم تحديد موقعك. الچايچية مرتبين من الأقرب.';
+    renderList();
+    var lm = $('locmsg2'); if (lm) lm.textContent = 'تم تحديد موقعك. تقدر تكتب وصف المكان حتى يلكاك أسرع.';
+    if (done) done(true);
+  }, function (e) {
+    var t = e && e.code === 1 ? 'ما سمحت بالموقع. فعّله من إعدادات المتصفح أو اكتب مكانك يدوياً.' : 'ما كدرنا نحدد موقعك. اكتب مكانك يدوياً.';
+    if (msg) msg.textContent = t;
+    var lm = $('locmsg2'); if (lm) lm.textContent = t;
+    if (done) done(false);
+  }, { enableHighAccuracy: true, timeout: 12000, maximumAge: 60000 });
 }
 
-function cartTotal() { return MENU.reduce(function (t, m) { return t + (cart[m.id] || 0) * m.price; }, 0); }
+/* ---------- order sheet ---------- */
+function findSeller(id) { return sellers.filter(function (s) { return s.id === id; }).map(decorate)[0]; }
+function pickDrinks() { return DRINKS.filter(function (m) { return pick && typeof pick.menu[m.id] === 'number'; }); }
+function cartTotal() { return pickDrinks().reduce(function (t, m) { return t + (cart[m.id] || 0) * pick.menu[m.id]; }, 0); }
 function renderSheet() {
-  $('items').innerHTML = MENU.filter(function (m) { return pick.menu.indexOf(m.id) > -1; }).map(function (m) {
-    return '<div class="item"><div><div class="t">' + m.name + '</div><div class="p">' + money(m.price) + '</div></div>' +
-      '<div class="step"><button data-act="dec" data-id="' + m.id + '" aria-label="نقّص ' + m.name + '">−</button>' +
+  $('items').innerHTML = pickDrinks().map(function (m) {
+    return '<div class="item"><div><div class="t">' + esc(m.name) + '</div><div class="p">' + money(pick.menu[m.id]) + '</div></div>' +
+      '<div class="step"><button data-act="dec" data-id="' + m.id + '" aria-label="نقّص ' + esc(m.name) + '">−</button>' +
       '<output>' + ar(cart[m.id] || 0) + '</output>' +
-      '<button data-act="inc" data-id="' + m.id + '" aria-label="زيّد ' + m.name + '">+</button></div></div>';
+      '<button data-act="inc" data-id="' + m.id + '" aria-label="زيّد ' + esc(m.name) + '">+</button></div></div>';
   }).join('');
   $('total').textContent = money(cartTotal());
   $('send').disabled = cartTotal() === 0;
 }
 function openSheet(id) {
+  if (order && order.open && !isFinal(order)) { go('orders'); return; }
   pick = findSeller(id);
   if (!pick) return;
   cart = {};
-  cart[pick.menu[0]] = 1;
+  var first = pickDrinks()[0];
+  if (first) cart[first.id] = 1;
   $('sh-title').textContent = 'طلب من ' + pick.name;
   $('err').textContent = '';
+  $('locmsg2').textContent = myLoc ? 'موقعك محدد. تقدر تكتب وصف المكان حتى يلكاك أسرع.' : '';
   var r0 = document.querySelector('input[name="pay"][value="now"]'); if (r0) r0.checked = true;
   renderSheet();
   $('scrim').hidden = false;
@@ -491,76 +597,117 @@ function openSheet(id) {
 }
 function closeSheet() { $('scrim').hidden = true; }
 
-function clearTimers() { timers.forEach(clearTimeout); timers = []; }
-function setStage(n) { if (!order) return; order.stage = n; chime(n === 3 ? 'done' : 'ok'); renderOrders(); }
 function sendOrder() {
   var loc = $('loc').value.trim();
   if (cartTotal() === 0) { $('err').textContent = 'اختار شي تطلبه.'; return; }
-  if (!loc) { $('err').textContent = 'اكتب وين أنت حتى يوصلك الچايچي.'; $('loc').focus(); return; }
+  if (!loc && !myLoc) { $('err').textContent = 'اكتب وين أنت أو اضغط "حدد موقعي".'; $('loc').focus(); return; }
   var payEl = document.querySelector('input[name="pay"]:checked');
   var pay = payEl ? payEl.value : 'now';
-  var lines = MENU.filter(function (m) { return cart[m.id]; }).map(function (m) { return { n: m.name, q: cart[m.id], p: m.price }; });
+  var lines = pickDrinks().filter(function (m) { return cart[m.id]; }).map(function (m) { return { id: m.id, n: m.name, q: cart[m.id], p: pick.menu[m.id] }; });
   var qty = lines.reduce(function (t, l) { return t + l.q; }, 0);
-  clearTimers();
-  order = { seller: pick, lines: lines, total: cartTotal(), loc: loc, stage: 0, cancelled: false, pay: pay, qty: qty, called: false };
-  closeSheet();
-  timers.push(setTimeout(function () { setStage(1); }, 3000));
-  timers.push(setTimeout(function () { setStage(2); }, 7000));
-  timers.push(setTimeout(function () { setStage(3); }, 14000));
-  if (pay === 'later') timers.push(setTimeout(callCollect, 32000));
-  go('orders');
+  var now = Date.now();
+  var doc = {
+    customerUid: myUid, sellerId: pick.id, sellerName: pick.name, zone: zoneId, lines: lines, total: cartTotal(), qty: qty,
+    loc: loc || 'حسب الموقع المحدد', lat: myLoc ? myLoc.lat : null, lng: myLoc ? myLoc.lng : null, pay: pay,
+    status: 'new', open: true, collectCalled: false, createdAt: now, statusAt: now, day: dayKey(now)
+  };
+  $('send').disabled = true;
+  db.collection('orders').add(doc).then(function (ref) {
+    orderId = ref.id; lastStage = null;
+    try { localStorage.setItem('chaychi-order', orderId); } catch (e) {}
+    closeSheet(); listenOrder(); go('orders');
+  }, function (e) { $('err').textContent = errText(e); $('send').disabled = false; });
 }
-/* pay-later orders: the customer calls the seller to collect the empty glasses, or the seller comes on his own after a while */
-function callCollect() {
-  if (!order || order.cancelled || order.pay !== 'later' || order.stage < 3 || order.stage >= 4 || order.called) return;
-  order.called = true;
-  chime('ok');
-  renderOrders();
-  timers.push(setTimeout(function () { setStage(4); }, 6000));
-}
-function cancelOrder() { clearTimers(); if (order) { order.cancelled = true; } renderOrders(); }
-function clearOrder() { clearTimers(); order = null; go('list'); }
 
-function isFinal(o) { return o.pay === 'later' ? o.stage >= 4 : o.stage >= 3; }
+/* ---------- order tracking ---------- */
+function stageOf(o) {
+  var s = o.status;
+  if (s === 'new') return 0;
+  if (s === 'accepted') return 1;
+  if (s === 'onway') return 2;
+  if (s === 'delivered') return 3;
+  if (s === 'paid') return o.pay === 'now' ? 3 : 4;
+  if (s === 'unpaid') return 4;
+  return -1;
+}
+function isFinal(o) { return o.status === 'cancelled' || o.status === 'rejected' || o.status === 'paid' || o.status === 'unpaid'; }
+function listenOrder() {
+  if (unsubOrder) { unsubOrder(); unsubOrder = null; }
+  if (!orderId) { order = null; renderOrders(); return; }
+  unsubOrder = db.collection('orders').doc(orderId).onSnapshot(function (snap) {
+    if (!snap.exists) { order = null; orderId = null; try { localStorage.removeItem('chaychi-order'); } catch (e) {} renderOrders(); return; }
+    order = snap.data(); order.id = snap.id;
+    var st = order.status;
+    if (lastStage !== null && lastStage !== st) chime(st === 'delivered' || st === 'paid' ? 'done' : 'ok');
+    lastStage = st;
+    renderOrders();
+  }, function () { renderOrders(); });
+}
+setInterval(function () {
+  if (!order || order.status !== 'new') return;
+  if (Date.now() - order.createdAt > ORDER_WAIT) {
+    db.collection('orders').doc(order.id).update({ status: 'cancelled', statusAt: Date.now(), open: false }).catch(function () {});
+  }
+}, 5000);
+function callCollect() {
+  if (!order || order.pay !== 'later' || order.status !== 'delivered' || order.collectCalled) return;
+  db.collection('orders').doc(order.id).update({ collectCalled: true }).catch(function (e) { showErr(errText(e)); });
+}
+function cancelOrder() {
+  if (!order || (order.status !== 'new' && order.status !== 'accepted')) return;
+  db.collection('orders').doc(order.id).update({ status: 'cancelled', statusAt: Date.now(), open: false }).catch(function (e) { showErr(errText(e)); });
+}
+function clearOrder() {
+  if (unsubOrder) { unsubOrder(); unsubOrder = null; }
+  order = null; orderId = null; lastStage = null;
+  try { localStorage.removeItem('chaychi-order'); } catch (e) {}
+  go('list');
+}
 function renderOrders() {
   var el = $('v-orders');
-  var live = order && !order.cancelled && !isFinal(order);
+  var live = order && !isFinal(order);
   $('badge').hidden = !live;
   if (!order) {
     el.innerHTML = '<div class="empty">' + glass() + '<strong>ماكو طلب حالياً</strong><p>اختار چايچي من القائمة واطلب استكان چاي.</p>' +
       '<button class="btn" data-act="tolist">شوف الچايچية</button></div>';
     return;
   }
-  var o = order, later = o.pay === 'later', head, sub;
-  if (o.cancelled) { head = 'انلغى الطلب'; sub = 'ما راح يوصلك شي من ' + o.seller.name + '.'; }
-  else if (o.stage === 0) { head = 'ننتظر ' + o.seller.name; sub = 'الطلب وصله، ننتظر يقبل.'; }
-  else if (o.stage === 1) { head = o.seller.name + ' قبل طلبك'; sub = 'جاي يجهز استكانك.'; }
-  else if (o.stage === 2) { head = 'بالطريق إلك'; sub = 'باقي حوالي ' + mins(o.seller.eta) + '.'; }
-  else if (o.stage === 3) {
+  var o = order, later = o.pay === 'later', st = stageOf(o), head, sub, name = o.sellerName;
+  if (o.status === 'cancelled') {
+    head = 'انلغى الطلب';
+    sub = (o.statusAt - o.createdAt >= ORDER_WAIT - 1000) ? name + ' ما رد بالوقت. جرّب چايچي ثاني.' : 'ما راح يوصلك شي من ' + name + '.';
+  }
+  else if (o.status === 'rejected') { head = 'الچايچي ما كدر ياخذ طلبك'; sub = name + ' مشغول هسة. جرّب چايچي ثاني.'; }
+  else if (st === 0) { head = 'ننتظر ' + name; sub = 'الطلب وصله، ننتظر يقبل.'; }
+  else if (st === 1) { head = name + ' قبل طلبك'; sub = 'جاي يجهز استكانك.'; }
+  else if (st === 2) { head = 'بالطريق إلك'; sub = 'الچايچي طلع لحد مكانك.'; }
+  else if (st === 3) {
     head = 'وصل چايك';
-    if (!later) sub = 'بالهنا والشفا. ادفع للچايچي ' + money(o.total) + ' نقداً.';
-    else if (o.called) { head = 'الچايچي جاي يلمّ الاستكانات'; sub = 'جهّز ' + ar(o.qty) + ' استكان فارغ والمبلغ ' + money(o.total) + '.'; }
+    if (!later) sub = 'بالهنا والشفا. ' + (o.status === 'paid' ? 'تم الدفع، شكراً.' : 'ادفع للچايچي ' + money(o.total) + ' نقداً.');
+    else if (o.collectCalled) { head = 'الچايچي جاي يلمّ الاستكانات'; sub = 'جهّز ' + ar(o.qty) + ' استكان فارغ والمبلغ ' + money(o.total) + '.'; }
     else sub = 'بالهنا والشفا. لما تخلص نادِ الچايچي حتى ياخذ الاستكانات والمبلغ ' + money(o.total) + '.';
   }
+  else if (o.status === 'unpaid') { head = 'انسجل الطلب'; sub = 'الچايچي ما لكاك وقت اللمّ. المبلغ ' + money(o.total) + ' يبقى عليك.'; }
   else { head = 'تم الدفع'; sub = 'شكراً. استلم الچايچي الاستكانات والمبلغ.'; }
+  var dead = o.status === 'cancelled' || o.status === 'rejected';
   var list = later ? STEPS.concat([STEP_PAY]) : STEPS;
-  var ds = o.stage >= 3 ? o.stage + 1 : o.stage;
-  var steps = o.cancelled ? '' : '<ol class="steps">' + list.map(function (s, i) {
+  var ds = st >= 3 ? st + 1 : st;
+  if (!later && st === 3) ds = 4;
+  var steps = dead ? '' : '<ol class="steps">' + list.map(function (s, i) {
     var cls = i < ds ? 'done' : (i === ds ? 'now' : '');
     return '<li class="' + cls + '"><span class="dot">' + (cls === 'done' ? '<svg class="ico" style="width:12px;height:12px"><use href="#i-check"/></svg>' : '') + '</span>' + s + '</li>';
   }).join('') + '</ol>';
-  var lines = o.lines.map(function (l) { return '<div><span>' + ar(l.q) + ' × ' + l.n + '</span><span>' + money(l.q * l.p) + '</span></div>'; }).join('');
+  var lines = o.lines.map(function (l) { return '<div><span>' + ar(l.q) + ' × ' + esc(l.n) + '</span><span>' + money(l.q * l.p) + '</span></div>'; }).join('');
   var btns;
-  if (o.cancelled || isFinal(o)) btns = '<button class="btn" data-act="newOrder">طلب جديد</button>';
-  else if (o.stage < 3) btns = '<button class="btn-line" data-act="cancel">الغاء الطلب</button>';
-  else if (later && !o.called) btns = '<button class="btn" data-act="callcollect">خلصت، نادِ الچايچي</button>';
+  if (isFinal(o)) btns = '<button class="btn" data-act="newOrder">طلب جديد</button>';
+  else if (o.status === 'new' || o.status === 'accepted') btns = '<button class="btn-line" data-act="cancel">الغاء الطلب</button>';
+  else if (later && o.status === 'delivered' && !o.collectCalled) btns = '<button class="btn" data-act="callcollect">خلصت، نادِ الچايچي</button>';
   else btns = '';
-  el.innerHTML = '<div class="order"><h3 class="head">' + head + '</h3><p class="sub">' + sub + '</p>' + steps +
+  el.innerHTML = '<div class="order"><h3 class="head">' + esc(head) + '</h3><p class="sub">' + esc(sub) + '</p>' + steps +
     '<div class="sum">' + lines + '<div class="tot"><span>المجموع</span><span>' + money(o.total) + '</span></div>' +
     '<div><span>الدفع</span><span>' + (later ? 'وقت لمّ الاستكانات' : 'نقداً عند التسليم') + '</span></div>' +
     '<div><span>المكان</span><span id="oloc"></span></div></div>' +
-    '<div class="row-btns">' + btns + '</div></div>' +
-    '<p class="demo-note">حالة الطلب هنا محاكاة تجريبية وتتغير لحالها.</p>';
+    '<div class="row-btns">' + btns + '</div></div>';
   $('oloc').textContent = o.loc;
 }
 
@@ -588,22 +735,27 @@ document.addEventListener('click', function (e) {
   else if (a === 'newOrder') clearOrder();
   else if (a === 'tolist') go('list');
   else if (a === 'snd') toggleSound();
-  else if (a === 'ad') { adOpen = !adOpen; renderAd(); }
+  else if (a === 'ad') openAd();
   else if (a === 'test') { unlock(); chime('done'); }
   else if (a === 'callcollect') callCollect();
+  else if (a === 'locate') locate();
 });
 document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && !$('scrim').hidden) closeSheet(); });
 $('zone').addEventListener('change', function (e) {
   zoneId = e.target.value;
   try { localStorage.setItem('chaychi-zone', zoneId); } catch (err) {}
-  adIdx = 0; adOpen = false;
-  renderList();
+  listenZone();
 });
 
 renderZones();
 renderSnd();
 renderList();
 renderOrders();
+ensureAuth().then(function () {
+  listenZone();
+  if (orderId) listenOrder();
+}, function (e) { loaded = true; showErr(errText(e)); renderList(); });
+
 </script>
 </body>
 </html>
