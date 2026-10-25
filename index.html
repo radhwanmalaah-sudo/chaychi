@@ -464,7 +464,7 @@ var zoneId = ZONES[0].id;
 try { var savedZone = localStorage.getItem('chaychi-zone'); if (savedZone) zoneId = savedZone; } catch (e) {}
 if (!ZONES.some(function (z) { return z.id === zoneId; })) zoneId = ZONES[0].id;
 
-var sellers = [], ads = [], myLoc = null, adIdx = 0, adOpen = false, adSeen = {}, adClicked = {};
+var sellers = [], ads = [], myLoc = null, adOpenId = '', adSeen = {}, adClicked = {};
 var cart = {}, pick = null, order = null, orderId = null, lastStage = null;
 var unsubSellers = null, unsubAds = null, unsubOrder = null, loaded = false;
 try { orderId = localStorage.getItem('chaychi-order') || null; } catch (e) {}
@@ -498,27 +498,20 @@ function zoneAds() { var t = dayKey(); return ads.filter(function (a) { return a
 function renderAd() {
   var list = zoneAds(), el = $('adslot');
   if (!list.length) { el.innerHTML = '<div class="adc empty-ad"><div class="top2"><span class="tag">إعلان</span></div>مساحة إعلان فاضية بمنطقتك.</div>'; return; }
-  var a = list[adIdx % list.length];
-  if (!adSeen[a.id]) {
-    adSeen[a.id] = 1;
-    db.collection('ads').doc(a.id).update({ views: FV.increment(1) }).catch(function () {});
-  }
-  el.innerHTML = '<button class="adc" data-act="ad" aria-expanded="' + adOpen + '"><div class="top2"><span class="tag">إعلان</span></div>' +
-    '<div class="shop">' + esc(a.shop) + '</div><p class="txt">' + esc(a.text) + '</p>' +
-    (adOpen ? '<div class="ph"><span>' + esc(a.phone) + '</span><span class="hintx" style="direction:rtl">رقم المحل</span></div>' : '<div class="hintx">اضغط لرقم المحل</div>') + '</button>';
+  el.innerHTML = '<div style="display:grid;gap:10px">' + list.map(function (a) {
+    if (!adSeen[a.id]) {
+      adSeen[a.id] = 1;
+      db.collection('ads').doc(a.id).update({ views: FV.increment(1) }).catch(function () {});
+    }
+    var open = adOpenId === a.id;
+    return '<button class="adc" data-act="ad" data-id="' + esc(a.id) + '" aria-expanded="' + open + '"><div class="top2"><span class="tag">إعلان</span></div>' +
+      '<div class="shop">' + esc(a.shop) + '</div><p class="txt">' + esc(a.text) + '</p>' +
+      (open ? '<div class="ph"><span>' + esc(a.phone) + '</span><span class="hintx" style="direction:rtl">رقم المحل</span></div>' : '<div class="hintx">اضغط لرقم المحل</div>') + '</button>';
+  }).join('') + '</div>';
 }
-setInterval(function () {
-  if (adOpen || document.hidden) return;
-  adIdx += 1;
-  renderAd();
-}, 8000);
-function openAd() {
-  adOpen = !adOpen;
-  var list = zoneAds();
-  if (adOpen && list.length) {
-    var a = list[adIdx % list.length];
-    if (!adClicked[a.id]) { adClicked[a.id] = 1; db.collection('ads').doc(a.id).update({ clicks: FV.increment(1) }).catch(function () {}); }
-  }
+function openAd(id) {
+  adOpenId = adOpenId === id ? '' : id;
+  if (adOpenId && !adClicked[id]) { adClicked[id] = 1; db.collection('ads').doc(id).update({ clicks: FV.increment(1) }).catch(function () {}); }
   renderAd();
 }
 
@@ -554,7 +547,7 @@ function renderList() {
 function listenZone() {
   if (unsubSellers) unsubSellers();
   if (unsubAds) unsubAds();
-  sellers = []; ads = []; loaded = false; adIdx = 0; adOpen = false;
+  sellers = []; ads = []; loaded = false; adOpenId = '';
   renderList();
   unsubSellers = db.collection('sellers').where('zone', '==', zoneId).onSnapshot(function (snap) {
     sellers = snap.docs.map(function (d) { var x = d.data(); x.id = d.id; return x; });
@@ -756,7 +749,7 @@ document.addEventListener('click', function (e) {
   else if (a === 'newOrder') clearOrder();
   else if (a === 'tolist') go('list');
   else if (a === 'snd') toggleSound();
-  else if (a === 'ad') openAd();
+  else if (a === 'ad') openAd(id);
   else if (a === 'test') { unlock(); chime('done'); }
   else if (a === 'callcollect') callCollect();
   else if (a === 'locate') locate();
