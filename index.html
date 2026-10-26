@@ -531,9 +531,8 @@ function toggleSound() {
 }
 
 
-var zoneId = ZONES[0].id;
-try { var savedZone = localStorage.getItem('chaychi-zone'); if (savedZone) zoneId = savedZone; } catch (e) {}
-if (!ZONES.some(function (z) { return z.id === zoneId; })) zoneId = ZONES[0].id;
+var zoneId = 'all'; /* default: all zones, nearest first. The customer can pick his own zone and it is remembered. */
+try { var savedZone = localStorage.getItem('chaychi-zone2'); if (savedZone) zoneId = savedZone; } catch (e) {}
 
 var sellers = [], ads = [], myLoc = null, adOpenId = '', adSeen = {}, adClicked = {};
 var blockedSelf = false, cart = {}, pick = null, order = null, orderId = null, lastStage = null;
@@ -544,7 +543,7 @@ function mins(n) { return ar(n) + ' دقيقة'; }
 function menuIds(s) { return menuItems(s.menu); }
 function isOk(s) { return !s.blocked && !!s.online && menuIds(s).length > 0 && (Date.now() - (s.hb || 0)) < HB_FRESH; }
 function decorate(s) {
-  var o = { id: s.id, name: s.name, menu: s.menu || {}, ok: isOk(s), rate: s.rate || 0, m: null, eta: null, lat: s.lat, lng: s.lng };
+  var o = { id: s.id, zone: s.zone, name: s.name, menu: s.menu || {}, ok: isOk(s), rate: s.rate || 0, m: null, eta: null, lat: s.lat, lng: s.lng };
   if (myLoc && typeof s.lat === 'number' && typeof s.lng === 'number') {
     o.m = haversine(myLoc.lat, myLoc.lng, s.lat, s.lng);
     o.eta = Math.max(1, Math.round(o.m / 80));
@@ -594,7 +593,7 @@ function openAd(id) {
 
 /* ---------- zones, sellers ---------- */
 function renderZones() {
-  $('zone').innerHTML = ZONES.map(function (z) {
+  $('zone').innerHTML = [{ id: 'all', name: 'كل المناطق' }].concat(ZONES).map(function (z) {
     return '<option value="' + z.id + '"' + (z.id === zoneId ? ' selected' : '') + '>' + esc(z.name) + '</option>';
   }).join('');
 }
@@ -608,15 +607,15 @@ function renderList() {
   $('near').innerHTML = nearest
     ? '<div class="near">' + glass('deco') +
       '<div class="eyebrow">' + (known ? 'أقرب چايچي متاح إلك' : 'چايچي متاح الحين') + '</div>' +
-      '<div class="nm">' + esc(nearest.name) + '</div>' +
+      '<div class="nm">' + esc(nearest.name) + '</div>' + (zoneId === 'all' ? '<div class="meta" style="margin-bottom:4px">' + esc(zoneName(nearest.zone)) + '</div>' : '') +
       (known ? '<div class="eta"><b>' + ar(nearest.eta) + '</b><span>دقايق وصوله</span></div>' +
         '<div class="meta" style="margin-bottom:8px">يبعد عنك ' + dist(nearest.m) + '</div>' : '<div class="meta" style="margin-bottom:8px">اضغط "حدد موقعي" حتى نعرف أقرب واحد إلك.</div>') +
       drinksHtml(nearest) +
       '<button class="btn-inv" data-act="order" data-id="' + esc(nearest.id) + '">اطلب منه</button></div>'
-    : '<div class="empty"><strong>' + (all.length ? 'كل الچايچية مشغولين' : 'ماكو چايچية بالمنطقة بعد') + '</strong><p>' + (all.length ? 'جرّب بعد شوية أو غيّر المنطقة.' : 'جرّب منطقة ثانية.') + '</p></div>';
+    : '<div class="empty"><strong>' + (all.length ? 'كل الچايچية مشغولين' : 'ماكو چايچية بعد') + '</strong><p>' + (all.length ? 'جرّب بعد شوية أو غيّر المنطقة.' : 'جرّب منطقة ثانية.') + '</p></div>';
   $('list').innerHTML = rest.map(function (s) {
     return '<div class="seller"><div class="avatar">' + glass() + '</div><div>' +
-      '<div class="nm">' + esc(s.name) + '</div><div class="meta">' + (s.m !== null ? '<span>' + dist(s.m) + '</span><span>' + mins(s.eta) + '</span>' : '') +
+      '<div class="nm">' + esc(s.name) + '</div><div class="meta">' + (zoneId === 'all' ? '<span>' + esc(zoneName(s.zone)) + '</span>' : '') + (s.m !== null ? '<span>' + dist(s.m) + '</span><span>' + mins(s.eta) + '</span>' : '') +
       '<span class="pill ' + (s.ok ? 'ok' : 'busy') + '">' + (s.ok ? 'متاح' : 'مو متاح') + '</span></div>' + drinksHtml(s) + '</div>' +
       '<button class="btn" data-act="order" data-id="' + esc(s.id) + '"' + (s.ok ? '' : ' disabled') + '>' + (s.ok ? 'اطلب' : 'مشغول') + '</button></div>';
   }).join('');
@@ -626,12 +625,12 @@ function listenZone() {
   if (unsubAds) unsubAds();
   sellers = []; ads = []; loaded = false; adOpenId = '';
   renderList();
-  unsubSellers = db.collection('sellers').where('zone', '==', zoneId).onSnapshot(function (snap) {
+  unsubSellers = (zoneId === 'all' ? db.collection('sellers') : db.collection('sellers').where('zone', '==', zoneId)).onSnapshot(function (snap) {
     sellers = snap.docs.map(function (d) { var x = d.data(); x.id = d.id; return x; });
     loaded = true; showErr('');
     renderList();
   }, function (e) { loaded = true; showErr(errText(e)); renderList(); });
-  unsubAds = db.collection('ads').where('zones', 'array-contains', zoneId).onSnapshot(function (snap) {
+  unsubAds = (zoneId === 'all' ? db.collection('ads') : db.collection('ads').where('zones', 'array-contains', zoneId)).onSnapshot(function (snap) {
     ads = snap.docs.map(function (d) { var x = d.data(); x.id = d.id; return x; });
     renderAd();
   }, function () {});
@@ -846,7 +845,7 @@ document.addEventListener('click', function (e) {
 document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && !$('scrim').hidden) closeSheet(); });
 $('zone').addEventListener('change', function (e) {
   zoneId = e.target.value;
-  try { localStorage.setItem('chaychi-zone', zoneId); } catch (err) {}
+  try { localStorage.setItem('chaychi-zone2', zoneId); } catch (err) {}
   listenZone();
 });
 
@@ -861,7 +860,7 @@ ensureAuth().then(function () {
   watchConfig(function () { renderAd(); });
   watchZones(function () {
     var had = zoneId;
-    if (!ZONES.some(function (z) { return z.id === zoneId; })) zoneId = ZONES[0].id;
+    if (zoneId !== 'all' && !ZONES.some(function (z) { return z.id === zoneId; })) zoneId = 'all';
     renderZones();
     if (!zonesReady) { zonesReady = true; listenZone(); if (orderId) listenOrder(); }
     else if (had !== zoneId) listenZone();
