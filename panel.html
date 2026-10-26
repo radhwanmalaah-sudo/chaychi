@@ -117,6 +117,15 @@ textarea.in { resize: vertical; min-height: 64px; }
 .pv .shop { font-family: var(--font-display); font-size: 22px; line-height: 1.3; color: var(--tea); overflow-wrap: anywhere; }
 .pv p { margin: 0; overflow-wrap: anywhere; }
 .pv .ph { margin-top: 4px; padding-top: 8px; border-top: 1px solid var(--line); font-weight: 600; direction: ltr; text-align: end; }
+.mq{display:block;overflow:hidden;white-space:nowrap;direction:ltr;margin-top:18px;background:var(--tea);color:var(--tea-ink);border-radius:12px;padding:8px 0;font-weight:600;text-decoration:none}
+.mq-in{display:inline-block;padding-inline-start:100%;animation:mq 14s linear infinite;direction:rtl;unicode-bidi:plaintext}
+@keyframes mq{from{transform:translateX(0)}to{transform:translateX(-100%)}}
+@media (prefers-reduced-motion: reduce){.mq-in{animation:none;padding:0 12px}.mq{white-space:normal}}
+.callbtn,a.tel{display:inline-block;background:var(--tea);color:var(--tea-ink);border-radius:10px;padding:6px 14px;font-weight:600;text-decoration:none}
+.adc .ph{direction:rtl}
+.instbox{margin-top:14px;text-align:center}
+.sw-c{width:38px;height:38px;border-radius:50%;border:3px solid var(--surface);box-shadow:0 0 0 1px var(--line);margin:4px}
+.sw-c[aria-pressed="true"]{box-shadow:0 0 0 3px var(--ink)}
 .fberr{background:var(--tea);color:var(--tea-ink);border-radius:12px;padding:10px 14px;margin:10px 0 0;font-size:14px;font-weight:600}
 .fberr[hidden]{display:none}
 </style>
@@ -148,7 +157,9 @@ textarea.in { resize: vertical; min-height: 64px; }
   <nav class="ptabs" aria-label="الأقسام">
     <button data-act="tab" data-tab="ads" aria-pressed="true">الإعلانات</button>
     <button data-act="tab" data-tab="sellers" aria-pressed="false">الچايچية</button>
-    <button data-act="tab" data-tab="req" aria-pressed="false">طلبات الانضمام<span class="bd" id="bd" hidden></span></button>
+    <button data-act="tab" data-tab="req" aria-pressed="false">الانضمام<span class="bd" id="bd" hidden></span></button>
+    <button data-act="tab" data-tab="late" aria-pressed="false">ما دفعوا<span class="bd" id="lbd" hidden></span></button>
+    <button data-act="tab" data-tab="set" aria-pressed="false">الإعدادات</button>
   </nav>
 
   <div id="v-ads">
@@ -194,6 +205,28 @@ textarea.in { resize: vertical; min-height: 64px; }
       <button class="btn" type="submit">أضف المنطقة</button>
     </form>
     <p class="note">لما تضيفه يطلع له كود دخول من ثمان خانات، ورسالة جاهزة ترسلها له على الواتساب.</p>
+  </div>
+
+  <div id="v-late" hidden>
+    <h2>زبائن ما دفعوا</h2>
+    <div class="cards" id="latelist"></div>
+    <h2>المحظورون</h2>
+    <div class="cards" id="blocklist"></div>
+    <p class="note">الحظر يمنع الزبون من الطلب برقمه وبجهازه. إذا دفع اضغط "دفع" وارفع الحظر. الزبون اللي يمسح بيانات المتصفح ويغيّر رقمه يتجاوز الحظر، فالرقم هو الأهم.</p>
+  </div>
+
+  <div id="v-set" hidden>
+    <h2>لون التطبيق</h2>
+    <p class="note" style="margin-top:0">اللون يطلع عند الزبائن والچايچية (الأزرار والعناوين). غيّره وقت ما تحب.</p>
+    <div id="swatches" style="display:flex;flex-wrap:wrap"></div>
+    <div class="f"><label for="colorin">أو اختار لون من عندك</label><input id="colorin" type="color" value="#A6311A" style="width:100%;height:44px;border:1px solid var(--line);border-radius:12px;background:var(--bg)"></div>
+    <form id="setform" novalidate style="margin-top:14px">
+      <div class="f"><label for="btext">النص المتحرك بمساحة الإعلانات</label><input class="in" id="btext" maxlength="80" placeholder="خلي اعلانك هنا للمعلنين من باب الترويج"></div>
+      <div class="f"><label for="bphone">رقم تواصل المعلنين (اختياري)</label><input class="in" id="bphone" type="tel" inputmode="tel" maxlength="14" placeholder="07701234567"></div>
+      <p class="err" id="set-err" role="alert"></p>
+      <button class="btn" type="submit">احفظ</button>
+    </form>
+    <p class="note">إذا حطيت رقم، الزبون يضغط على النص المتحرك ويتصل بيك مباشرة.</p>
   </div>
 
   <div id="v-req" hidden>
@@ -291,6 +324,60 @@ function menuItems(menu) {
   return out;
 }
 
+/* ---------- theme colour chosen by the owner (config/app) ---------- */
+var THEME_KEY = 'chaychi-theme', APPCFG = {};
+function hex2rgb(h) { return [parseInt(h.slice(1, 3), 16), parseInt(h.slice(3, 5), 16), parseInt(h.slice(5, 7), 16)]; }
+function lum(h) { var c = hex2rgb(h).map(function (v) { v /= 255; return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4); }); return 0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2]; }
+function rgb2hsl(r, g, b) {
+  r /= 255; g /= 255; b /= 255;
+  var mx = Math.max(r, g, b), mn = Math.min(r, g, b), l = (mx + mn) / 2, h = 0, s = 0, d = mx - mn;
+  if (d) { s = l > 0.5 ? d / (2 - mx - mn) : d / (mx + mn); h = mx === r ? ((g - b) / d + (g < b ? 6 : 0)) : mx === g ? (b - r) / d + 2 : (r - g) / d + 4; h /= 6; }
+  return [h, s, l];
+}
+function hsl2hex(h, s, l) {
+  function f(p, q, t) { if (t < 0) t += 1; if (t > 1) t -= 1; if (t < 1 / 6) return p + (q - p) * 6 * t; if (t < 1 / 2) return q; if (t < 2 / 3) return p + (q - p) * (2 / 3 - t) * 6; return p; }
+  var q = l < 0.5 ? l * (1 + s) : l + s - l * s, p = 2 * l - q;
+  return '#' + [f(p, q, h + 1 / 3), f(p, q, h), f(p, q, h - 1 / 3)].map(function (v) { return ('0' + Math.round(v * 255).toString(16)).slice(-2); }).join('');
+}
+function inkFor(h) { return lum(h) > 0.4 ? '#1A0A06' : '#FFFFFF'; }
+function applyTheme(color) {
+  if (!/^#[0-9a-fA-F]{6}$/.test(color || '')) return;
+  var rgb = hex2rgb(color), hsl = rgb2hsl(rgb[0], rgb[1], rgb[2]);
+  var dark = hsl[2] < 0.62 ? hsl2hex(hsl[0], Math.min(hsl[1], 0.75), 0.64) : color;
+  var light = lum(color) > 0.5 ? hsl2hex(hsl[0], hsl[1], 0.36) : color;
+  var css = ':root{--tea:' + light + ';--tea-ink:' + inkFor(light) + '}' +
+    '@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){--tea:' + dark + ';--tea-ink:' + inkFor(dark) + '}}' +
+    ':root[data-theme="dark"]{--tea:' + dark + ';--tea-ink:' + inkFor(dark) + '}';
+  var el = document.getElementById('themecss');
+  if (!el) { el = document.createElement('style'); el.id = 'themecss'; document.head.appendChild(el); }
+  el.textContent = css;
+  var m = document.querySelector('meta[name="theme-color"]'); if (m) m.setAttribute('content', light);
+}
+try { applyTheme(localStorage.getItem(THEME_KEY)); } catch (e) {}
+function watchConfig(cb) {
+  return db.collection('config').doc('app').onSnapshot(function (s) {
+    APPCFG = s.exists ? s.data() : {};
+    if (APPCFG.color) { applyTheme(APPCFG.color); try { localStorage.setItem(THEME_KEY, APPCFG.color); } catch (e) {} }
+    if (cb) cb(APPCFG);
+  }, function () {});
+}
+
+/* ---------- phone numbers, install to home screen ---------- */
+function normPhone(t) {
+  var s = String(t || '').replace(/[٠-٩]/g, function (d) { return '٠١٢٣٤٥٦٧٨٩'.indexOf(d); }).replace(/[\s\-()]/g, '');
+  return /^\+?\d{9,14}$/.test(s) ? s : '';
+}
+function telLink(num, label, cls) { return '<a class="' + (cls || 'tel') + '" href="tel:' + esc(num) + '">' + esc(label || num) + '</a>'; }
+var deferredInstall = null;
+window.addEventListener('beforeinstallprompt', function (e) { e.preventDefault(); deferredInstall = e; });
+function isStandalone() { try { return window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true; } catch (e) { return false; } }
+function installApp(msgEl) {
+  if (deferredInstall) { deferredInstall.prompt(); deferredInstall = null; return; }
+  var ios = /iphone|ipad|ipod/i.test(navigator.userAgent);
+  if (msgEl) msgEl.textContent = ios ? 'من زر المشاركة بسفاري اختار "إضافة إلى الشاشة الرئيسية".' : 'من قائمة كروم (⋮ فوق) اختار "تثبيت التطبيق" أو "إضافة إلى الشاشة الرئيسية".';
+}
+if ('serviceWorker' in navigator) { window.addEventListener('load', function () { navigator.serviceWorker.register('sw.js').catch(function () {}); }); }
+
 document.documentElement.dir = 'rtl';
 document.documentElement.lang = 'ar';
 
@@ -305,7 +392,7 @@ function adZones(a) {
   return z.map(zoneName).join('، ');
 }
 
-var ads = [], sellers = [], privs = {}, reqs = [];
+var ads = [], sellers = [], privs = {}, reqs = [], unpaid = [], blocked = {}, lateGroups = {};
 var confirmId = '', sconfirm = '', rconfirm = '', invite = null;
 var unsubs = [];
 
@@ -350,7 +437,7 @@ function renderPreview() {
   $('pv').innerHTML = '<span class="tag">إعلان</span><div class="shop">' + esc(shop) + '</div><p>' + esc(text) + '</p><div class="ph">' + esc(phone) + '</div>';
   $('cnt').textContent = ar($('text').value.length) + ' / ٨٠';
 }
-function renderAll() { renderStats(); renderList(); renderSellers(); renderReq(); renderZonesBox(); }
+function renderAll() { renderStats(); renderList(); renderSellers(); renderReq(); renderZonesBox(); renderLate(); }
 var zconfirm = '';
 function renderZonesBox() {
   var el = $('zlist'); if (!el) return;
@@ -410,7 +497,7 @@ function copyText(srcId, btn) {
   try { navigator.clipboard.writeText(text).then(function () { done(true); }, fallback); } catch (e) { fallback(); }
 }
 function showTab(t) {
-  ['ads', 'sellers', 'req'].forEach(function (k) { $('v-' + k).hidden = k !== t; });
+  ['ads', 'sellers', 'req', 'late', 'set'].forEach(function (k) { $('v-' + k).hidden = k !== t; });
   Array.prototype.forEach.call(document.querySelectorAll('.ptabs button'), function (b) { b.setAttribute('aria-pressed', String(b.dataset.tab === t)); });
   window.scrollTo(0, 0);
 }
@@ -521,6 +608,11 @@ document.addEventListener('click', function (e) {
     if (sellers.some(function (s) { return s.zone === id; })) { $('z-err').textContent = 'بهذي المنطقة چايچية. انقلهم أو احذفهم أول.'; }
     else { $('z-err').textContent = ''; db.collection('zones').doc(id).delete().catch(fail); }
   }
+  else if (a === 'color') { pickColor(id); return; }
+  else if (a === 'lpaid') db.collection('orders').doc(id).update({ status: 'paid', paidAt: Date.now(), open: false, statusAt: Date.now() }).catch(fail);
+  else if (a === 'gblock') blockGroup(id, true);
+  else if (a === 'gunblock') blockGroup(id, false);
+  else if (a === 'unb') db.collection('blocked').doc(id).delete().catch(fail);
   else if (a === 'login') signIn();
   else if (a === 'logout') signOut();
   renderAll();
@@ -533,6 +625,65 @@ $('zform').addEventListener('submit', function (e) {
   if (ZONES.some(function (z) { return z.name === n; })) { $('z-err').textContent = 'هذي المنطقة موجودة.'; return; }
   $('z-err').textContent = '';
   db.collection('zones').doc('z' + Date.now().toString(36)).set({ name: n, o: Date.now() }).then(function () { $('z-name').value = ''; }, fail);
+});
+
+/* ---------- customers who did not pay ---------- */
+function fdate(t) { var d = new Date(t); return ar(d.getDate() + '/' + (d.getMonth() + 1) + '/' + d.getFullYear()); }
+function groupKeys(g) { var k = []; if (g.phone) k.push(g.phone); g.uids.forEach(function (u) { k.push(u); }); return k; }
+function renderLate() {
+  var el = $('latelist'); if (!el) return;
+  var groups = {};
+  unpaid.forEach(function (o) {
+    var ph = o.phone && o.phone !== 'none' ? o.phone : '';
+    var key = ph || o.customerUid;
+    var g = groups[key] || (groups[key] = { key: key, phone: ph, uids: [], orders: [], total: 0 });
+    if (g.uids.indexOf(o.customerUid) < 0) g.uids.push(o.customerUid);
+    g.orders.push(o); g.total += o.total;
+  });
+  lateGroups = groups;
+  var arr = Object.keys(groups).map(function (k) { return groups[k]; }).sort(function (a, b) { return b.total - a.total; });
+  $('lbd').hidden = !arr.length; $('lbd').textContent = ar(arr.length);
+  el.innerHTML = arr.length ? arr.map(function (g) {
+    var isB = groupKeys(g).some(function (k) { return blocked[k]; });
+    return '<div class="card' + (isB ? ' dim' : '') + '"><div class="row"><div><div class="shop ltr" style="direction:ltr;text-align:start">' + (g.phone ? esc(g.phone) : 'زبون بدون رقم · ' + esc(g.key.slice(0, 6))) + '</div>' +
+      '<div class="meta"><span>' + ar(g.orders.length) + ' طلب</span><span>المبلغ ' + money(g.total) + '</span></div></div>' +
+      '<span class="pill ' + (isB ? 'off' : 'busy') + '">' + (isB ? 'محظور' : 'ما دفع') + '</span></div>' +
+      g.orders.map(function (o) { return '<div class="meta" style="justify-content:space-between"><span>' + esc(o.sellerName || '') + ' · ' + fdate(o.createdAt) + ' · ' + money(o.total) + '</span><button class="btn-line" data-act="lpaid" data-id="' + o.id + '">دفع</button></div>'; }).join('') +
+      '<div class="btns">' + (isB ? '<button class="btn-line" data-act="gunblock" data-id="' + esc(g.key) + '">ارفع الحظر</button>' : '<button class="btn-line danger" data-act="gblock" data-id="' + esc(g.key) + '">احظره</button>') + '</div></div>';
+  }).join('') : '<div class="empty"><strong>ماكو زبائن ما دفعوا</strong><p>لما الچايچي يضغط "ما لقيت الزبون" يطلع الزبون هنا.</p></div>';
+  var bl = Object.keys(blocked);
+  $('blocklist').innerHTML = bl.length ? bl.map(function (id) {
+    return '<div class="card"><div class="row"><div class="shop" style="direction:ltr;text-align:start;font-size:18px">' + esc(id.length > 16 ? 'جهاز ' + id.slice(0, 6) : id) + '</div><button class="btn-line" data-act="unb" data-id="' + esc(id) + '">ارفع</button></div></div>';
+  }).join('') : '<p class="note">ماكو أحد محظور.</p>';
+}
+function blockGroup(key, on) {
+  var g = lateGroups[key]; if (!g) return;
+  var b = db.batch();
+  groupKeys(g).forEach(function (k) {
+    var r = db.collection('blocked').doc(k);
+    if (on) b.set(r, { type: k === g.phone ? 'phone' : 'uid', at: Date.now(), note: 'unpaid' }); else b.delete(r);
+  });
+  b.commit().catch(fail);
+}
+
+/* ---------- settings: colour and ad banner ---------- */
+var PRESETS = [['شاي أحمر', '#A6311A'], ['أخضر', '#0E6B5F'], ['أزرق', '#1F5FA8'], ['بنفسجي', '#6B3FA0'], ['ذهبي', '#8A5A00'], ['وردي', '#B03060'], ['رمادي غامق', '#3C4743']];
+var pickedColor = '';
+function renderSwatches() {
+  $('swatches').innerHTML = PRESETS.map(function (c) {
+    return '<button type="button" class="sw-c" data-act="color" data-id="' + c[1] + '" aria-pressed="' + (pickedColor.toLowerCase() === c[1].toLowerCase()) + '" style="background:' + c[1] + '" aria-label="' + esc(c[0]) + '"></button>';
+  }).join('');
+}
+function pickColor(c) { pickedColor = c; $('colorin').value = c; applyTheme(c); renderSwatches(); }
+$('colorin').addEventListener('input', function (e) { pickColor(e.target.value); });
+$('setform').addEventListener('submit', function (e) {
+  e.preventDefault();
+  var ph = $('bphone').value.trim(), err = '';
+  if (ph && !normPhone(ph)) err = 'رقم الإعلان غلط.';
+  $('set-err').textContent = err; if (err) return;
+  var data = { bannerText: $('btext').value.trim(), bannerPhone: ph ? normPhone(ph) : '' };
+  if (pickedColor) data.color = pickedColor;
+  db.collection('config').doc('app').set(data, { merge: true }).then(function () { $('set-err').textContent = 'انحفظ. يطلع عند الزبائن والچايچية خلال لحظات.'; }, fail);
 });
 
 /* ---------- login (Google) and live data ---------- */
@@ -550,6 +701,9 @@ function listenAll() {
     }
     fillZoneSelects(); renderAll();
   }));
+  unsubs.push(db.collection('orders').where('status', '==', 'unpaid').onSnapshot(function (s) { unpaid = s.docs.map(function (d) { var x = d.data(); x.id = d.id; return x; }); renderAll(); }, bad));
+  unsubs.push(db.collection('blocked').onSnapshot(function (s) { blocked = {}; s.docs.forEach(function (d) { blocked[d.id] = d.data(); }); renderAll(); }, bad));
+  unsubs.push(watchConfig(function (c) { if (!pickedColor && c.color) { pickedColor = c.color; $('colorin').value = c.color; renderSwatches(); } if (document.activeElement !== $('btext')) $('btext').value = c.bannerText || ''; if (document.activeElement !== $('bphone')) $('bphone').value = c.bannerPhone || ''; }));
   unsubs.push(db.collection('ads').orderBy('createdAt', 'desc').onSnapshot(function (s) { ads = s.docs.map(function (d) { var x = d.data(); x.id = d.id; return x; }); renderAll(); }, bad));
   unsubs.push(db.collection('sellers').onSnapshot(function (s) { sellers = s.docs.map(function (d) { var x = d.data(); x.id = d.id; return x; }); renderAll(); }, bad));
   unsubs.push(db.collection('sellerPrivate').onSnapshot(function (s) { privs = {}; s.docs.forEach(function (d) { privs[d.id] = d.data(); }); renderAll(); }, bad));
@@ -579,6 +733,7 @@ function signIn() {
 function signOut() { stopListening(); auth.signOut(); }
 
 renderPreview();
+renderSwatches();
 renderAll();
 if (!fbOK) { $('lerr').textContent = 'تعذر تحميل Firebase. تأكد من الإنترنت.'; }
 else {

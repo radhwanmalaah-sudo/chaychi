@@ -2,6 +2,10 @@
 <html lang="ar" dir="rtl">
 <head>
 <meta charset="utf-8">
+<link rel="manifest" href="manifest-seller.json">
+<link rel="apple-touch-icon" href="icon-seller-192.png">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#A6311A">
 <title>شايچي للچايچية</title>
@@ -180,6 +184,15 @@ h2 .n { background: var(--tea); color: var(--tea-ink); border-radius: 999px; min
 .tab { background: transparent; border: 0; border-radius: 12px; padding: 8px 2px; display: grid; justify-items: center; gap: 2px; color: var(--ink-2); font-size: 13px; font-weight: 500; position: relative; }
 .tab[aria-current="page"] { color: var(--tea); background: var(--surface-2); font-weight: 600; }
 .tab .badge { position: absolute; top: 6px; left: calc(50% + 8px); width: 9px; height: 9px; border-radius: 50%; background: var(--tea); }
+.mq{display:block;overflow:hidden;white-space:nowrap;direction:ltr;margin-top:18px;background:var(--tea);color:var(--tea-ink);border-radius:12px;padding:8px 0;font-weight:600;text-decoration:none}
+.mq-in{display:inline-block;padding-inline-start:100%;animation:mq 14s linear infinite;direction:rtl;unicode-bidi:plaintext}
+@keyframes mq{from{transform:translateX(0)}to{transform:translateX(-100%)}}
+@media (prefers-reduced-motion: reduce){.mq-in{animation:none;padding:0 12px}.mq{white-space:normal}}
+.callbtn,a.tel{display:inline-block;background:var(--tea);color:var(--tea-ink);border-radius:10px;padding:6px 14px;font-weight:600;text-decoration:none}
+.adc .ph{direction:rtl}
+.instbox{margin-top:14px;text-align:center}
+.sw-c{width:38px;height:38px;border-radius:50%;border:3px solid var(--surface);box-shadow:0 0 0 1px var(--line);margin:4px}
+.sw-c[aria-pressed="true"]{box-shadow:0 0 0 3px var(--ink)}
 .fberr{background:var(--tea);color:var(--tea-ink);border-radius:12px;padding:10px 14px;margin:10px 0 0;font-size:14px;font-weight:600}
 .fberr[hidden]{display:none}
 </style>
@@ -227,6 +240,7 @@ h2 .n { background: var(--tea); color: var(--tea-ink); border-radius: 999px; min
     <div id="active"></div>
     <button class="btn-line test" data-act="test" style="margin-top:8px">جرّب الصوت</button>
     <p class="demo-note">إذا ما سمعت شي: تأكد الجوال مو على صامت وارفع صوت الوسائط.</p>
+    <div class="instbox" id="instbox"><button class="btn-line" data-act="install">ثبّت التطبيق على الشاشة الرئيسية</button><p class="hint" id="instmsg"></p></div>
     <p class="demo-note">خلّي التطبيق مفتوح والشاشة شغالة حتى توصلك الطلبات بالصوت.</p>
   </main>
 
@@ -357,6 +371,60 @@ function menuItems(menu) {
   });
   return out;
 }
+
+/* ---------- theme colour chosen by the owner (config/app) ---------- */
+var THEME_KEY = 'chaychi-theme', APPCFG = {};
+function hex2rgb(h) { return [parseInt(h.slice(1, 3), 16), parseInt(h.slice(3, 5), 16), parseInt(h.slice(5, 7), 16)]; }
+function lum(h) { var c = hex2rgb(h).map(function (v) { v /= 255; return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4); }); return 0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2]; }
+function rgb2hsl(r, g, b) {
+  r /= 255; g /= 255; b /= 255;
+  var mx = Math.max(r, g, b), mn = Math.min(r, g, b), l = (mx + mn) / 2, h = 0, s = 0, d = mx - mn;
+  if (d) { s = l > 0.5 ? d / (2 - mx - mn) : d / (mx + mn); h = mx === r ? ((g - b) / d + (g < b ? 6 : 0)) : mx === g ? (b - r) / d + 2 : (r - g) / d + 4; h /= 6; }
+  return [h, s, l];
+}
+function hsl2hex(h, s, l) {
+  function f(p, q, t) { if (t < 0) t += 1; if (t > 1) t -= 1; if (t < 1 / 6) return p + (q - p) * 6 * t; if (t < 1 / 2) return q; if (t < 2 / 3) return p + (q - p) * (2 / 3 - t) * 6; return p; }
+  var q = l < 0.5 ? l * (1 + s) : l + s - l * s, p = 2 * l - q;
+  return '#' + [f(p, q, h + 1 / 3), f(p, q, h), f(p, q, h - 1 / 3)].map(function (v) { return ('0' + Math.round(v * 255).toString(16)).slice(-2); }).join('');
+}
+function inkFor(h) { return lum(h) > 0.4 ? '#1A0A06' : '#FFFFFF'; }
+function applyTheme(color) {
+  if (!/^#[0-9a-fA-F]{6}$/.test(color || '')) return;
+  var rgb = hex2rgb(color), hsl = rgb2hsl(rgb[0], rgb[1], rgb[2]);
+  var dark = hsl[2] < 0.62 ? hsl2hex(hsl[0], Math.min(hsl[1], 0.75), 0.64) : color;
+  var light = lum(color) > 0.5 ? hsl2hex(hsl[0], hsl[1], 0.36) : color;
+  var css = ':root{--tea:' + light + ';--tea-ink:' + inkFor(light) + '}' +
+    '@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){--tea:' + dark + ';--tea-ink:' + inkFor(dark) + '}}' +
+    ':root[data-theme="dark"]{--tea:' + dark + ';--tea-ink:' + inkFor(dark) + '}';
+  var el = document.getElementById('themecss');
+  if (!el) { el = document.createElement('style'); el.id = 'themecss'; document.head.appendChild(el); }
+  el.textContent = css;
+  var m = document.querySelector('meta[name="theme-color"]'); if (m) m.setAttribute('content', light);
+}
+try { applyTheme(localStorage.getItem(THEME_KEY)); } catch (e) {}
+function watchConfig(cb) {
+  return db.collection('config').doc('app').onSnapshot(function (s) {
+    APPCFG = s.exists ? s.data() : {};
+    if (APPCFG.color) { applyTheme(APPCFG.color); try { localStorage.setItem(THEME_KEY, APPCFG.color); } catch (e) {} }
+    if (cb) cb(APPCFG);
+  }, function () {});
+}
+
+/* ---------- phone numbers, install to home screen ---------- */
+function normPhone(t) {
+  var s = String(t || '').replace(/[٠-٩]/g, function (d) { return '٠١٢٣٤٥٦٧٨٩'.indexOf(d); }).replace(/[\s\-()]/g, '');
+  return /^\+?\d{9,14}$/.test(s) ? s : '';
+}
+function telLink(num, label, cls) { return '<a class="' + (cls || 'tel') + '" href="tel:' + esc(num) + '">' + esc(label || num) + '</a>'; }
+var deferredInstall = null;
+window.addEventListener('beforeinstallprompt', function (e) { e.preventDefault(); deferredInstall = e; });
+function isStandalone() { try { return window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true; } catch (e) { return false; } }
+function installApp(msgEl) {
+  if (deferredInstall) { deferredInstall.prompt(); deferredInstall = null; return; }
+  var ios = /iphone|ipad|ipod/i.test(navigator.userAgent);
+  if (msgEl) msgEl.textContent = ios ? 'من زر المشاركة بسفاري اختار "إضافة إلى الشاشة الرئيسية".' : 'من قائمة كروم (⋮ فوق) اختار "تثبيت التطبيق" أو "إضافة إلى الشاشة الرئيسية".';
+}
+if ('serviceWorker' in navigator) { window.addEventListener('load', function () { navigator.serviceWorker.register('sw.js').catch(function () {}); }); }
 
 document.documentElement.dir = 'rtl';
 document.documentElement.lang = 'ar';
@@ -492,6 +560,9 @@ function payPill(o) {
   return '<div style="margin-top:4px"><span class="pill ' + (o.pay === 'now' ? 'ok' : 'busy') + '">' +
     (o.pay === 'now' ? 'الدفع عند التسليم' : 'الدفع وقت لمّ الاستكانات') + '</span></div>';
 }
+function phoneLink(o) {
+  return o.phone && o.phone !== 'none' ? '<div class="meta">' + telLink(o.phone, 'اتصل بالزبون ' + o.phone, 'callbtn') + '</div>' : '';
+}
 function mapLink(o) {
   if (typeof o.lat !== 'number' || typeof o.lng !== 'number') return '';
   var dm = (prof && typeof prof.lat === 'number') ? '<span> · ' + dist(haversine(prof.lat, prof.lng, o.lat, o.lng)) + '</span>' : '';
@@ -516,7 +587,7 @@ function renderIncoming() {
   } else {
     html += '<div class="cards">' + inc.map(function (o) {
       var s = secsLeft(o);
-      return '<div class="card"><div class="row"><div><div class="where" data-w="' + o.id + '"></div>' + mapLink(o) + payPill(o) + '</div>' +
+      return '<div class="card"><div class="row"><div><div class="where" data-w="' + o.id + '"></div>' + mapLink(o) + phoneLink(o) + payPill(o) + '</div>' +
         '<div class="timer' + (s <= 10 ? ' low' : '') + '" data-t="' + o.id + '">' + ar(s) + '</div></div>' +
         linesHtml(o) + '<div class="row tot"><span>المجموع</span><span>' + money(o.total) + '</span></div>' +
         '<div class="btns"><button class="btn" data-act="accept" data-id="' + o.id + '">اقبل</button>' +
@@ -531,7 +602,7 @@ function renderActive() {
   if (!act.length) { $('active').innerHTML = ''; return; }
   $('active').innerHTML = '<h2>طلباتك الحالية<span class="n">' + ar(act.length) + '</span></h2><div class="cards">' + act.map(function (o) {
     var onway = o.status === 'onway';
-    return '<div class="card"><div class="row"><div><div class="where" data-a="' + o.id + '"></div>' + mapLink(o) + payPill(o) + '</div>' +
+    return '<div class="card"><div class="row"><div><div class="where" data-a="' + o.id + '"></div>' + mapLink(o) + phoneLink(o) + payPill(o) + '</div>' +
       '<span class="pill ' + (onway ? 'ok' : 'busy') + '">' + (onway ? 'بالطريق' : 'جاهز تطلع') + '</span></div>' +
       linesHtml(o) + '<div class="row tot"><span>المجموع</span><span>' + money(o.total) + '</span></div>' +
       '<div class="btns">' + (onway
@@ -545,7 +616,7 @@ function renderCollect() {
   if (!col.length) { $('collect').innerHTML = ''; return; }
   $('collect').innerHTML = '<h2>لمّ الاستكانات والمبلغ<span class="n">' + ar(col.length) + '</span></h2><div class="cards">' + col.map(function (o) {
     var due = isDue(o), left = Math.max(0, Math.ceil(((o.deliveredAt || o.statusAt) + COLLECT_AFTER - now()) / 1000));
-    return '<div class="card' + (due ? ' due' : '') + '"><div class="row"><div><div class="where" data-c="' + o.id + '"></div>' + mapLink(o) +
+    return '<div class="card' + (due ? ' due' : '') + '"><div class="row"><div><div class="where" data-c="' + o.id + '"></div>' + mapLink(o) + phoneLink(o) +
       '<div class="meta">لمّ ' + ar(o.qty) + ' استكان واستلم ' + money(o.total) + (o.collectCalled ? ' · الزبون ناداك' : '') + '</div></div>' +
       (due ? '<span class="pill busy">حان وقت اللمّ</span>' : '<div class="timer" data-cd="' + o.id + '">' + fmt(left) + '</div>') + '</div>' +
       '<div class="btns"><button class="btn-ok" data-act="collected" data-id="' + o.id + '">لمّيت واستلمت المبلغ</button>' +
@@ -868,6 +939,7 @@ $('f-join').addEventListener('submit', function (e) {
 /* ---------- events ---------- */
 document.addEventListener('submit', function (e) { if (e.target && e.target.id === 'f-custom') addCustom(e); });
 document.addEventListener('click', function (e) {
+  if (e.target.closest('a[href^="tel:"],a[href^="https://www.google.com/maps"]')) return;
   var t = e.target.closest('[data-act],[data-tab]');
   if (!t) return;
   if (t.dataset.tab) { go(t.dataset.tab); return; }
@@ -892,6 +964,7 @@ document.addEventListener('click', function (e) {
   else if (a === 'g-in') gateTab('in');
   else if (a === 'g-join') gateTab('join');
   else if (a === 'copy') copyText(t.dataset.src, t);
+  else if (a === 'install') installApp($('instmsg'));
   else if (a === 'logout') logout();
   else if (a === 'enter') { var w = $('g-wait'); loginWith(w.dataset.code || '', $('e-login')); }
   else if (a === 'back') forgetJoin();
@@ -921,7 +994,9 @@ setInterval(function () {
 
 /* start */
 renderSnd();
+if (isStandalone()) { $('instbox').hidden = true; }
 ensureAuth().then(function () {
+  watchConfig();
   watchZones(function () { fillZones(); if (prof) { $('me').textContent = prof.name + ' · ' + zoneName(prof.zone); } });
   var kept = null;
   try { kept = localStorage.getItem('chaychi-seller-sid'); } catch (e) {}
