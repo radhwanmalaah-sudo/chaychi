@@ -72,33 +72,51 @@ form.g { background: var(--surface); border: 1px solid var(--line); border-radiu
       </div>
     </div>
 
-    <h2>عملة الأسعار</h2>
-    <div class="seg" id="curseg">
-      <button type="button" data-act="cur" data-v="iqd">دينار</button>
-      <button type="button" data-act="cur" data-v="usd">دولار</button>
-      <button type="button" data-act="cur" data-v="none">بلا سعر</button>
+    <div id="sales-tools">
+      <h2>عملة الأسعار</h2>
+      <div class="seg" id="curseg">
+        <button type="button" data-act="cur" data-v="iqd">دينار</button>
+        <button type="button" data-act="cur" data-v="usd">دولار</button>
+        <button type="button" data-act="cur" data-v="none">بلا سعر</button>
+      </div>
+      <p class="note" id="curnote"></p>
     </div>
-    <p class="note" id="curnote"></p>
 
-    <h2>عروضك <span id="icnt"></span></h2>
+    <div id="venue-tools" hidden>
+      <h2>عدد الطاولات</h2>
+      <div class="card">
+        <div class="row">
+          <span class="meta">الطاولات مرقّمة من ١ إلى العدد اللي تحدده</span>
+          <div style="display:inline-flex;align-items:center;border:1px solid var(--line);border-radius:10px;overflow:hidden">
+            <button type="button" data-act="tbl-dec" style="border:0;background:var(--surface-2);padding:6px 14px">−</button>
+            <output id="tbl-n" style="min-width:2.5em;text-align:center;font-weight:600">١٠</output>
+            <button type="button" data-act="tbl-inc" style="border:0;background:var(--surface-2);padding:6px 14px">+</button>
+          </div>
+        </div>
+        <p class="note" id="venue-link-note" style="margin:8px 0 0"></p>
+        <div class="btns"><button class="btn-line" data-act="copy-venue" type="button">انسخ رابط الزبائن</button></div>
+      </div>
+    </div>
+
+    <div id="orders-box" hidden>
+      <h2>طلبات واردة <span id="ocnt"></span></h2>
+      <p class="note" id="ord-note">مهم: اتصل بالزبون أولاً وتأكد من الطلب قبل القبول — حتى ما يصير تلاعب أو طلب وهمي.</p>
+      <div id="olist"></div>
+    </div>
+
+    <h2 id="list-title">عروضك <span id="icnt"></span></h2>
     <div id="ilist"></div>
 
-    <h2>أضف عرض جديد</h2>
+    <h2 id="form-title">أضف عنصر</h2>
     <form class="g" id="f-item" novalidate>
-      <div><label class="f" for="iname">الاسم</label>
-        <input class="in" id="iname" maxlength="40" placeholder="مثال: خبز صمون / توصيل طلبات"></div>
-      <div><label class="f" for="itype">النوع</label>
-        <select class="in" id="itype">
-          <option value="sale">مبيعات</option>
-          <option value="service">خدمة</option>
-          <option value="other">أخرى</option>
-        </select></div>
+      <div><label class="f" for="iname" id="iname-lab">الاسم</label>
+        <input class="in" id="iname" maxlength="40" placeholder=""></div>
       <div id="pricebox"><label class="f" for="iprice">السعر</label>
-        <input class="in" id="iprice" type="number" inputmode="decimal" min="0" step="any" placeholder="اتركه فاضي إذا ماكو سعر"></div>
+        <input class="in" id="iprice" type="number" inputmode="decimal" min="0" step="any" maxlength="12" placeholder="مثال: 120000"></div>
       <div><label class="f" for="idesc">وصف مختصر (اختياري)</label>
         <input class="in" id="idesc" maxlength="80" placeholder="جملة قصيرة"></div>
       <p class="err" id="ierr" role="alert"></p>
-      <button class="btn" type="submit">أضف العرض</button>
+      <button class="btn" type="submit" id="f-item-btn">أضف</button>
     </form>
   </section>
 </div>
@@ -121,9 +139,14 @@ function esc(t) { return String(t == null ? '' : t).replace(/[&<>"']/g, function
 function ar(n) { return String(n).replace(/\d/g, function (d) { return '٠١٢٣٤٥٦٧٨٩'[d]; }); }
 function normCode(c) { return String(c || '').trim().toUpperCase().replace(/[^A-Z0-9]/g, ''); }
 
-var ad = null, adId = null, unsub = null;
-var TYPE_L = { sale: 'مبيعات', service: 'خدمة', other: 'أخرى' };
+var ad = null, adId = null, unsub = null, unsubOrders = null, adOrders = [];
 var CUR_L = { iqd: 'دينار عراقي', usd: 'دولار', none: 'بدون سعر' };
+function isVenue() { return ad && ad.pageType === 'venue'; }
+function isSales() { return !ad || (ad.pageType !== 'services'); } // sales + venue both have products
+function moneyOrd(n, cur) {
+  if (n == null || cur === 'none') return ar(n || 0);
+  return cur === 'usd' ? (n + ' $') : (ar(n) + ' د.ع');
+}
 
 function ensureAuth() {
   return new Promise(function (res, rej) {
@@ -142,26 +165,38 @@ function money(p, cur) {
 }
 
 function renderCur() {
+  var sales = isSales();
+  $('sales-tools').hidden = !sales;
+  if (!sales) return;
   var cur = (ad && ad.currency) || 'none';
   Array.prototype.forEach.call(document.querySelectorAll('#curseg button'), function (b) {
     b.setAttribute('aria-pressed', String(b.dataset.v === cur));
   });
-  $('curnote').textContent = cur === 'none' ? 'العروض تظهر بدون أسعار.' : 'الأسعار بال' + CUR_L[cur] + '.';
+  $('curnote').textContent = cur === 'none' ? 'المنتجات تظهر بدون أسعار.' : 'الأسعار بال' + CUR_L[cur] + '.';
   $('pricebox').hidden = cur === 'none';
 }
 
 function renderItems() {
   var items = (ad && ad.items) || [];
+  var sales = isSales();
   $('icnt').textContent = items.length ? '(' + ar(items.length) + ')' : '';
+  var venue = isVenue();
+  var lab = venue ? 'قائمتك ' : (sales ? 'منتجاتك ' : 'خدماتك ');
+  $('list-title').innerHTML = lab + '<span id="icnt">' + (items.length ? '(' + ar(items.length) + ')' : '') + '</span>';
+  $('form-title').textContent = venue ? 'أضف صنف' : (sales ? 'أضف منتج' : 'أضف خدمة');
+  $('iname-lab').textContent = venue ? 'اسم الصنف' : (sales ? 'اسم المنتج' : 'اسم الخدمة');
+  $('iname').placeholder = venue ? 'مثال: استكان چاي، شيشة، بركر' : (sales ? 'مثال: تليفون، طباعة، كيس رز' : 'مثال: تصميم مخططات، صيانة مكيفات');
+  $('f-item-btn').textContent = venue ? 'أضف للقائمة' : (sales ? 'أضف المنتج' : 'أضف الخدمة');
+  $('pricebox').hidden = !sales || (ad.currency || 'none') === 'none';
   if (!items.length) {
-    $('ilist').innerHTML = '<div class="empty">ماكو عروض بعد. أضف أول عرض من الفورم تحت.</div>';
+    $('ilist').innerHTML = '<div class="empty">' + (sales ? 'ماكو منتجات بعد. أضف أول منتج من الفورم تحت.' : 'ماكو خدمات بعد. أضف أول خدمة من الفورم تحت.') + '</div>';
     return;
   }
   var cur = ad.currency || 'none';
   $('ilist').innerHTML = items.map(function (it, i) {
     return '<div class="card"><div class="row"><div><div class="shop" style="font-size:18px">' + esc(it.name) + '</div>' +
-      '<div class="meta"><span class="pill">' + esc(TYPE_L[it.type] || it.type) + '</span>' +
-      (it.price != null && it.price !== '' && cur !== 'none' ? ' <span class="price">' + esc(money(it.price, cur)) + '</span>' : '') +
+      '<div class="meta">' +
+      (sales && it.price != null && it.price !== '' && cur !== 'none' ? '<span class="price">' + esc(money(it.price, cur)) + '</span>' : '<span class="pill">' + (sales ? 'منتج' : 'خدمة') + '</span>') +
       '</div>' + (it.desc ? '<div class="meta">' + esc(it.desc) + '</div>' : '') +
       '</div><button class="btn-line danger" data-act="delitem" data-i="' + i + '">احذف</button></div></div>';
   }).join('');
@@ -169,27 +204,119 @@ function renderItems() {
 
 function renderAll() {
   if (!ad) return;
+  var sales = isSales();
+  var venue = isVenue();
   $('shopname').textContent = ad.shop || 'المحل';
-  $('shopmeta').textContent = (ad.phone || '') + (ad.text ? ' · ' + ad.text : '');
+  var kind = venue ? 'صفحة صالة / كافتريا' : (ad.pageType === 'services' ? 'صفحة خدمات' : 'صفحة مبيعات');
+  $('shopmeta').textContent = kind + (ad.phone ? ' · ' + ad.phone : '') + (ad.text ? ' · ' + ad.text : '');
+  $('venue-tools').hidden = !venue;
+  if (venue) {
+    var n = Math.max(1, Math.min(200, Number(ad.tableCount) || 10));
+    $('tbl-n').textContent = ar(n);
+    var vlink = 'https://radhwanmalaah-sudo.github.io/chaychi/venue.html?c=' + encodeURIComponent(ad.ownerCode || '');
+    $('venue-link-note').innerHTML = 'رابط الزبائن: <span dir="ltr" style="word-break:break-all">' + esc(vlink) + '</span>';
+    window._venueLink = vlink;
+  }
   renderCur();
   renderItems();
+  renderOrders();
+}
+
+function renderOrders() {
+  var box = $('orders-box'), list = $('olist');
+  if (!box || !list) return;
+  if (!isSales() && !isVenue()) { box.hidden = true; return; }
+  // sales + venue show orders
+  box.hidden = false;
+  var note = $('ord-note');
+  if (note) note.textContent = isVenue()
+    ? 'الطلبات حسب رقم الطاولة. الطلب يبقى مفتوح حتى تضغط إنهاء بعد الدفع أو الاستلام. الزبون يقدر يضيف طلبات إضافية لنفس الطاولة.'
+    : 'مهم: اتصل بالزبون أولاً وتأكد من الطلب قبل القبول — حتى ما يصير تلاعب أو طلب وهمي.';
+  var open = adOrders.filter(function (o) { return o.open !== false && o.status !== 'cancelled' && o.status !== 'rejected'; });
+  $('ocnt').textContent = open.length ? '(' + ar(open.length) + ')' : '';
+  if (!open.length) {
+    list.innerHTML = '<div class="empty">ماكو طلبات حالياً.</div>';
+    return;
+  }
+  var cur = (ad && ad.currency) || 'iqd';
+  list.innerHTML = open.map(function (o) {
+    var lines = (o.lines || []).map(function (l) {
+      return esc(l.n) + ' × ' + ar(l.q);
+    }).join(' · ');
+    var st = o.status || 'new';
+    var venue = isVenue();
+    var stL = venue
+      ? ({ open: 'مفتوح', new: 'مفتوح', accepted: 'مفتوح', delivered: 'منتهي', closed: 'منتهي', rejected: 'مرفوض', cancelled: 'ملغي' }[st] || st)
+      : ({ new: 'جديد — اتصل للتأكيد', accepted: 'مقبول', onway: 'بالطريق', delivered: 'تم التسليم', rejected: 'مرفوض' }[st] || st);
+    var btns = '';
+    if (venue) {
+      if (st === 'new' || st === 'open' || st === 'accepted') {
+        btns = '<button class="btn" data-act="o-done" data-id="' + esc(o.id) + '">إنهاء الطلب (تم الدفع/الاستلام)</button>' +
+          '<button class="btn-line danger" data-act="o-no" data-id="' + esc(o.id) + '">إلغاء</button>';
+      }
+    } else if (st === 'new') {
+      btns = '<a class="btn-ok" href="tel:' + esc(o.phone) + '">اتصل بالزبون</a>' +
+        '<button class="btn" data-act="o-ok" data-id="' + esc(o.id) + '">قبول بعد التأكيد</button>' +
+        '<button class="btn-line danger" data-act="o-no" data-id="' + esc(o.id) + '">رفض</button>';
+    } else if (st === 'accepted') {
+      btns = '<button class="btn" data-act="o-way" data-id="' + esc(o.id) + '">طلعت بالطريق</button>';
+    } else if (st === 'onway') {
+      btns = '<button class="btn" data-act="o-done" data-id="' + esc(o.id) + '">تم التسليم</button>';
+    }
+    var head = venue ? ('طاولة ' + ar(o.tableNo || '?')) : esc(o.phone || '');
+    return '<div class="card">' +
+      '<div class="row"><div class="shop" style="font-size:18px">' + head + '</div><span class="pill' + ((st === 'new' || st === 'open' || st === 'accepted') ? ' ok' : '') + '">' + stL + '</span></div>' +
+      '<div class="meta">' + lines + '</div>' +
+      '<div class="meta">المجموع: <b class="price">' + esc(moneyOrd(o.total, cur)) + '</b>' + (o.phone && o.phone !== 'none' ? ' · ' + esc(o.phone) : '') + (o.loc ? ' · ' + esc(o.loc) : '') + '</div>' +
+      (btns ? '<div class="btns" style="margin-top:8px">' + btns + '</div>' : '') +
+      '</div>';
+  }).join('');
+}
+
+function setOrderStatus(id, status) {
+  var patch = { status: status, statusAt: Date.now() };
+  if (status === 'delivered' || status === 'rejected' || status === 'cancelled') patch.open = false;
+  if (status === 'delivered') patch.deliveredAt = Date.now();
+  db.collection('orders').doc(id).update(patch).catch(function (e) { alert(e.message || 'ما انحفظ'); });
 }
 
 function openApp(id, data) {
   adId = id; ad = data; ad.id = id;
   $('gate').hidden = true; $('app').hidden = false;
   if (unsub) unsub();
+  if (unsubOrders) { unsubOrders(); unsubOrders = null; }
+  // اربط حساب الدخول كمالك الصفحة (لحماية الطلبات)
+  ensureAuth().then(function (u) {
+    if (u && (!data.ownerUid || data.ownerUid === u.uid)) {
+      db.collection('ads').doc(id).update({ ownerUid: u.uid }).catch(function () {});
+    }
+  });
   unsub = db.collection('ads').doc(id).onSnapshot(function (snap) {
     if (!snap.exists) { logout('انحذف الإعلان.'); return; }
     ad = snap.data(); ad.id = id;
     renderAll();
   }, function (e) { $('lerr').textContent = e.message || 'خطأ'; });
+  unsubOrders = db.collection('orders').where('adId', '==', id).orderBy('createdAt', 'desc').limit(30)
+    .onSnapshot(function (s) {
+      adOrders = s.docs.map(function (d) { var x = d.data(); x.id = d.id; return x; });
+      renderOrders();
+    }, function () {
+      // إذا ماكو index، جرب بدون orderBy
+      unsubOrders = db.collection('orders').where('adId', '==', id).limit(30)
+        .onSnapshot(function (s2) {
+          adOrders = s2.docs.map(function (d) { var x = d.data(); x.id = d.id; return x; });
+          adOrders.sort(function (a, b) { return (b.createdAt || 0) - (a.createdAt || 0); });
+          renderOrders();
+        }, function () {});
+    });
   renderAll();
+  renderOrders();
 }
 
 function logout(msg) {
   if (unsub) { unsub(); unsub = null; }
-  ad = null; adId = null;
+  if (unsubOrders) { unsubOrders(); unsubOrders = null; }
+  ad = null; adId = null; adOrders = [];
   $('app').hidden = true; $('gate').hidden = false;
   $('code').value = '';
   if (msg) $('lerr').textContent = msg;
@@ -220,19 +347,20 @@ $('f-item').addEventListener('submit', function (e) {
   e.preventDefault();
   if (!adId || !ad) return;
   var name = $('iname').value.trim();
-  var type = $('itype').value;
+  var sales = isSales();
+  var type = sales ? 'sale' : 'service';
   var priceRaw = $('iprice').value.trim();
   var desc = $('idesc').value.trim();
   var cur = ad.currency || 'none';
   var err = '';
-  if (!name) err = 'اكتب اسم العرض.';
-  else if (cur !== 'none' && type === 'sale' && priceRaw === '') err = 'للمبيعات اكتب السعر أو غيّر العملة إلى بلا.';
+  if (!name) err = sales ? 'اكتب اسم المنتج.' : 'اكتب اسم الخدمة.';
+  else if (sales && cur !== 'none' && priceRaw === '') err = 'اكتب السعر أو غيّر العملة إلى بلا.';
   $('ierr').textContent = err;
   if (err) return;
   var item = { name: name, type: type, desc: desc || '' };
-  if (cur !== 'none' && priceRaw !== '') {
-    var p = Number(priceRaw);
-    if (isNaN(p) || p < 0) { $('ierr').textContent = 'السعر غير صحيح.'; return; }
+  if (sales && cur !== 'none' && priceRaw !== '') {
+    var p = Number(String(priceRaw).replace(/[^\d.]/g, ''));
+    if (isNaN(p) || p < 0 || p > 999999999) { $('ierr').textContent = 'السعر من ٠ إلى ٩٩٩٬٩٩٩٬٩٩٩.'; return; }
     item.price = p;
   }
   var items = (ad.items || []).slice();
@@ -260,6 +388,22 @@ document.addEventListener('click', function (e) {
       items.splice(i, 1);
       db.collection('ads').doc(adId).update({ items: items }).catch(function () {});
     }
+  } else if (a === 'o-ok') setOrderStatus(t.dataset.id, 'accepted');
+  else if (a === 'o-no') setOrderStatus(t.dataset.id, 'rejected');
+  else if (a === 'o-way') setOrderStatus(t.dataset.id, 'onway');
+  else if (a === 'o-done') setOrderStatus(t.dataset.id, 'delivered');
+  else if (a === 'tbl-inc' || a === 'tbl-dec') {
+    if (!adId || !ad) return;
+    var n = Math.max(1, Math.min(200, Number(ad.tableCount) || 10));
+    n = a === 'tbl-inc' ? n + 1 : n - 1;
+    n = Math.max(1, Math.min(200, n));
+    db.collection('ads').doc(adId).update({ tableCount: n }).catch(function () {});
+  } else if (a === 'copy-venue') {
+    var link = window._venueLink || '';
+    if (!link) return;
+    try {
+      navigator.clipboard.writeText(link).then(function () { t.textContent = 'تم النسخ'; setTimeout(function () { t.textContent = 'انسخ رابط الزبائن'; }, 1500); });
+    } catch (e) { prompt('انسخ الرابط:', link); }
   }
 });
 
