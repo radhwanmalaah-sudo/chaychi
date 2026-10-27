@@ -171,9 +171,17 @@ textarea.in { resize: vertical; min-height: 64px; }
 
   <h2>إعلان جديد</h2>
   <form id="form" novalidate>
-    <div class="f"><label for="shop">اسم المحل</label><input class="in" id="shop" maxlength="30" placeholder="مثال: مخبز الأمل" autocomplete="off"></div>
+    <div class="f"><label for="shop">اسم المحل / الجهة</label><input class="in" id="shop" maxlength="30" placeholder="مثال: مخبز الأمل · مكتب النور الهندسي" autocomplete="off"></div>
+    <div class="f"><label for="ptype">نوع الصفحة</label>
+      <select class="in" id="ptype">
+        <option value="sales">مبيعات — منتجات وطلب بالكمية</option>
+        <option value="services">خدمات — عرض وتواصل فقط</option>
+        <option value="venue">صالة / كافتريا — طاولات + قائمة</option>
+      </select>
+      <p class="note" style="margin:6px 0 0;color:var(--ink-2);font-size:13px">مبيعات: منتجات. خدمات: تواصل فقط. صالة: طاولات مرقّمة وقائمة للزبون.</p>
+    </div>
     <div class="f"><label for="text">نص الإعلان</label><textarea class="in" id="text" maxlength="80" placeholder="جملة قصيرة تعرّف الزبون بالمحل"></textarea><div class="cnt" id="cnt">٠ / ٨٠</div></div>
-    <div class="f"><label for="phone">رقم المحل</label><input class="in" id="phone" type="tel" inputmode="tel" maxlength="14" placeholder="07701234567" autocomplete="off"></div>
+    <div class="f"><label for="phone">رقم التواصل</label><input class="in" id="phone" type="tel" inputmode="tel" maxlength="14" placeholder="07701234567" autocomplete="off"></div>
     <div class="f"><label for="zone">المنطقة</label><select class="in" id="zone"></select></div>
     <div class="two">
       <div class="f"><label for="start">من تاريخ</label><input class="in" id="start" type="date"></div>
@@ -249,12 +257,7 @@ var ZONES_DEFAULT = [
   { id: 'dawasa', name: 'الدواسة' }
 ];
 var ZONES = ZONES_DEFAULT.slice();
-var DRINKS = [
-  { id: 'glass', name: 'استكان چاي', price: 250 },
-  { id: 'milk', name: 'چاي بالحليب', price: 500 },
-  { id: 'mint', name: 'چاي بالنعناع', price: 500 },
-  { id: 'coffee', name: 'قهوة', price: 500 }
-];
+var DRINKS = [];
 var HB_FRESH = 240000; /* a seller counts as available if his heartbeat is newer than 4 minutes */
 var fbOK = false, auth = null, db = null, FV = null, myUid = null;
 try {
@@ -417,6 +420,7 @@ function renderStats() {
 var editAdId = '';
 var lastAdInvite = null;
 var SHOP_LINK = 'https://radhwanmalaah-sudo.github.io/chaychi/shop.html';
+var VENUE_LINK = 'https://radhwanmalaah-sudo.github.io/chaychi/venue.html';
 function genCode() {
   var c = '';
   for (var i = 0; i < 8; i++) c += 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'.charAt(Math.floor(Math.random() * 32));
@@ -424,6 +428,9 @@ function genCode() {
 }
 function adOwnerLink(code) { return SHOP_LINK + '?c=' + encodeURIComponent(code || ''); }
 function adInviteText(a) {
+  if (a.pageType === 'venue') {
+    return 'أهلاً ' + a.shop + '،\nرابط إدارة الصالة:\n' + adOwnerLink(a.ownerCode) + '\nكود الدخول: ' + a.ownerCode + '\n\nرابط زبائن الصالة (علّقه أو QR):\n' + VENUE_LINK + '?c=' + encodeURIComponent(a.ownerCode || '') + '\nالزبون يختار طاولة ويطلب من قائمتك.';
+  }
   return 'أهلاً ' + a.shop + '،\nهذا رابط صفحة محلك في شايچي:\n' + adOwnerLink(a.ownerCode) + '\nكود الدخول: ' + a.ownerCode + '\nافتح الرابط وادخل الكود حتى تضيف منتجاتك وخدماتك.';
 }
 function renderList() {
@@ -440,9 +447,10 @@ function renderList() {
   }
   $('list').innerHTML = invHtml + ads.map(function (a) {
     var st = status(a);
+    var ptl = a.pageType === 'services' ? 'خدمات' : (a.pageType === 'venue' ? 'صالة' : 'مبيعات');
     return '<div class="card' + (st.k === 'off' ? ' dim' : '') + '"><div class="row"><div class="shop">' + esc(a.shop) + '</div><span class="pill ' + st.k + '">' + st.t + '</span></div>' +
       '<p class="txt">' + esc(a.text) + '</p>' +
-      '<div class="meta"><span>' + esc(adZones(a)) + '</span><span>' + dshow(a.start) + ' إلى ' + dshow(a.end) + '</span><span class="ltr">' + esc(a.phone) + '</span></div>' +
+      '<div class="meta"><span class="pill">' + ptl + '</span><span>' + esc(adZones(a)) + '</span><span>' + dshow(a.start) + ' إلى ' + dshow(a.end) + '</span><span class="ltr">' + esc(a.phone) + '</span></div>' +
       (a.ownerCode ? '<div class="meta"><span>كود المعلن: <b dir="ltr">' + esc(a.ownerCode) + '</b></span><span>' + ar((a.items || []).length) + ' عرض</span></div>' : '') +
       '<div class="nums"><div>ظهر<b>' + ar(a.views || 0) + '</b></div><div>ضغطوا<b>' + ar(a.clicks || 0) + '</b></div><div>نسبة الضغط<b>' + ctr(a) + '</b></div></div>' +
       '<div class="btns"><button class="btn-line" data-act="editad" data-id="' + a.id + '">عدّل</button>' +
@@ -488,6 +496,7 @@ function fail(e) { showErr(errText(e)); }
 function resetAdForm() {
   editAdId = '';
   $('shop').value = ''; $('text').value = ''; $('phone').value = '';
+  if ($('ptype')) $('ptype').value = 'sales';
   $('start').value = off(0); $('end').value = off(14);
   $('err').textContent = '';
   var btn = document.querySelector('#form button[type="submit"]');
@@ -501,6 +510,7 @@ function fillAdForm(a) {
   $('shop').value = a.shop || '';
   $('text').value = a.text || '';
   $('phone').value = a.phone || '';
+  if ($('ptype')) $('ptype').value = (a.pageType === 'services' || a.pageType === 'venue') ? a.pageType : 'sales';
   $('start').value = a.start || off(0);
   $('end').value = a.end || off(14);
   var zs = a.zones || [];
@@ -517,6 +527,8 @@ $('form').addEventListener('submit', function (e) {
   e.preventDefault();
   var shop = $('shop').value.trim(), text = $('text').value.trim(), phone = $('phone').value.trim().replace(/[\s-]/g, '');
   var st = $('start').value, en = $('end').value;
+  var pageType = ($('ptype') && $('ptype').value) || 'sales';
+  if (pageType !== 'services' && pageType !== 'venue') pageType = 'sales';
   var err = '';
   if (!shop) err = 'اكتب اسم المحل.';
   else if (!text) err = 'اكتب نص الإعلان.';
@@ -528,17 +540,19 @@ $('form').addEventListener('submit', function (e) {
   var z = $('zone').value;
   var zs = z === 'all' ? ZONES.map(function (x) { return x.id; }) : [z];
   if (editAdId) {
-    db.collection('ads').doc(editAdId).update({ shop: shop, text: text, phone: phone, zones: zs, start: st, end: en }).then(function () {
+    var up = { shop: shop, text: text, phone: phone, zones: zs, start: st, end: en, pageType: pageType };
+    if (pageType === 'venue' && !(ads.filter(function(x){return x.id===editAdId})[0]||{}).tableCount) up.tableCount = 10;
+    db.collection('ads').doc(editAdId).update(up).then(function () {
       resetAdForm(); window.scrollTo(0, 0);
     }, fail);
   } else {
     var code = genCode();
     db.collection('ads').add({
-      shop: shop, text: text, phone: phone, zones: zs, start: st, end: en,
+      shop: shop, text: text, phone: phone, zones: zs, start: st, end: en, pageType: pageType,
       active: true, views: 0, clicks: 0, createdAt: Date.now(),
-      ownerCode: code, currency: 'none', items: []
+      ownerCode: code, currency: (pageType === 'services' ? 'none' : 'iqd'), items: [], tableCount: pageType === 'venue' ? 10 : 0
     }).then(function (ref) {
-      lastAdInvite = { id: ref.id, shop: shop, ownerCode: code };
+      lastAdInvite = { id: ref.id, shop: shop, ownerCode: code, pageType: pageType };
       resetAdForm(); window.scrollTo(0, 0);
     }, fail);
   }
@@ -568,7 +582,7 @@ function sellerView(s) { var p = privs[s.id] || {}; return { id: s.id, name: s.n
 function createSeller(name, phone, zone, menuIds, extra) {
   var ref = db.collection('sellers').doc(), code = newCode(), now = Date.now(), menu = {};
   menuIds.forEach(function (id) { var d = DRINKS.filter(function (x) { return x.id === id; })[0]; if (d) menu[id] = d.price; });
-  if (!Object.keys(menu).length) menu.glass = 250;
+  if (!Object.keys(menu).length) menu = {};
   var batch = db.batch();
   batch.set(ref, { name: name, zone: zone, online: false, blocked: false, menu: menu, hb: 0, createdAt: now });
   batch.set(db.collection('sellerPrivate').doc(ref.id), { phone: phone, code: code, uid: '', createdAt: now });
@@ -579,7 +593,7 @@ function createSeller(name, phone, zone, menuIds, extra) {
 function approveReq(id) {
   var r = reqs.filter(function (x) { return x.id === id; })[0];
   if (!r) return;
-  createSeller(r.name, r.phone, r.zone, r.drinks || ['glass'], function (batch, code) {
+  createSeller(r.name, r.phone, r.zone, r.drinks || [], function (batch, code) {
     batch.update(db.collection('joinRequests').doc(id), { status: 'approved', code: code, approvedAt: Date.now() });
   }).then(function (x) { invite = x; showTab('sellers'); renderAll(); }, fail);
 }
@@ -636,7 +650,7 @@ $('sform').addEventListener('submit', function (e) {
   else if (!/^\+?\d{9,14}$/.test(phone)) err = 'الرقم لازم يكون أرقام فقط، مثال 07701234567.';
   $('s-err').textContent = err;
   if (err) return;
-  createSeller(name, phone, $('s-zone').value, ['glass']).then(function (x) {
+  createSeller(name, phone, $('s-zone').value, []).then(function (x) {
     invite = x; $('s-name').value = ''; $('s-phone').value = ''; renderAll();
   }, fail);
 });
