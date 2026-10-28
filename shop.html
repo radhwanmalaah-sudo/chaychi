@@ -280,35 +280,46 @@ function setOrderStatus(id, status) {
   db.collection('orders').doc(id).update(patch).catch(function (e) { alert(e.message || 'ما انحفظ'); });
 }
 
+function listenOrders(id) {
+  if (unsubOrders) { unsubOrders(); unsubOrders = null; }
+  function apply(s) {
+    adOrders = s.docs.map(function (d) { var x = d.data(); x.id = d.id; return x; });
+    adOrders.sort(function (a, b) { return (b.createdAt || 0) - (a.createdAt || 0); });
+    renderOrders();
+  }
+  unsubOrders = db.collection('orders').where('adId', '==', id).orderBy('createdAt', 'desc').limit(40)
+    .onSnapshot(apply, function () {
+      unsubOrders = db.collection('orders').where('adId', '==', id).limit(40)
+        .onSnapshot(apply, function (e) {
+          var box = $('olist');
+          if (box) box.innerHTML = '<div class="empty">ما كدرت أقرأ الطلبات: ' + esc((e && e.message) || 'صلاحيات') + '</div>';
+        });
+    });
+}
+
 function openApp(id, data) {
   adId = id; ad = data; ad.id = id;
   $('gate').hidden = true; $('app').hidden = false;
   if (unsub) unsub();
   if (unsubOrders) { unsubOrders(); unsubOrders = null; }
-  // اربط حساب الدخول كمالك الصفحة (لحماية الطلبات)
-  ensureAuth().then(function (u) {
-    if (u && (!data.ownerUid || data.ownerUid === u.uid)) {
-      db.collection('ads').doc(id).update({ ownerUid: u.uid }).catch(function () {});
-    }
-  });
   unsub = db.collection('ads').doc(id).onSnapshot(function (snap) {
     if (!snap.exists) { logout('انحذف الإعلان.'); return; }
     ad = snap.data(); ad.id = id;
     renderAll();
   }, function (e) { $('lerr').textContent = e.message || 'خطأ'; });
-  unsubOrders = db.collection('orders').where('adId', '==', id).orderBy('createdAt', 'desc').limit(30)
-    .onSnapshot(function (s) {
-      adOrders = s.docs.map(function (d) { var x = d.data(); x.id = d.id; return x; });
-      renderOrders();
-    }, function () {
-      // إذا ماكو index، جرب بدون orderBy
-      unsubOrders = db.collection('orders').where('adId', '==', id).limit(30)
-        .onSnapshot(function (s2) {
-          adOrders = s2.docs.map(function (d) { var x = d.data(); x.id = d.id; return x; });
-          adOrders.sort(function (a, b) { return (b.createdAt || 0) - (a.createdAt || 0); });
-          renderOrders();
-        }, function () {});
-    });
+  // أولاً سجّل هالجهاز كمالك، وبعدين اسمع الطلبات (حتى ما تنرفض الصلاحية)
+  ensureAuth().then(function (u) {
+    if (!u) return null;
+    if (data.ownerUid && data.ownerUid !== u.uid) {
+      // مالك مسجّل من جهاز ثاني — نحاول نسمع على أي حال
+      return null;
+    }
+    return db.collection('ads').doc(id).update({ ownerUid: u.uid });
+  }).then(function () {
+    listenOrders(id);
+  }).catch(function () {
+    listenOrders(id);
+  });
   renderAll();
   renderOrders();
 }
