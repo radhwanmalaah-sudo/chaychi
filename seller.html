@@ -1,0 +1,1002 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<link rel="manifest" href="manifest-seller.json">
+<link rel="apple-touch-icon" href="icon-seller-192.png">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#A6311A">
+<title>مصلاوي اون لاين للبائعين</title>
+<style>html{color-scheme:light}body{margin:0}img{max-width:100%}[hidden]{display:none!important}:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}</style>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;600&family=Lalezar&display=swap">
+<style>
+/* Layout: one phone-width column. Sticky header, a big availability block that carries the colour, incoming requests with a countdown, bottom tabs for requests / today. */
+:root {
+  --bg: #EEF1EE;
+  --surface: #FFFFFF;
+  --surface-2: #E3E9E5;
+  --ink: #17201D;
+  --ink-2: #52605B;
+  --line: #D1D9D4;
+  --tea: #A6311A;
+  --tea-ink: #FFFFFF;
+  --ok: #0E6B5F;
+  --ok-bg: #D5EEE8;
+  --busy: #7F5200;
+  --busy-bg: #F5E6C3;
+  --off: #3C4743;
+  --off-ink: #FFFFFF;
+  --scrim: rgba(10, 16, 14, 0.5);
+  --font-display: 'Lalezar', 'Segoe UI', Tahoma, sans-serif;
+  --font-body: 'IBM Plex Sans Arabic', 'Segoe UI', Tahoma, sans-serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0F1514; --surface: #172120; --surface-2: #1F2C2A; --ink: #E7EEEB; --ink-2: #9DB0AA;
+    --line: #2A3A37; --tea: #E5755A; --tea-ink: #1A0A06; --ok: #5CD0C0; --ok-bg: #12352F;
+    --busy: #E8B95A; --busy-bg: #3A2D10; --off: #2A3A37; --off-ink: #E7EEEB; --scrim: rgba(0, 0, 0, 0.6); color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0F1514; --surface: #172120; --surface-2: #1F2C2A; --ink: #E7EEEB; --ink-2: #9DB0AA;
+  --line: #2A3A37; --tea: #E5755A; --tea-ink: #1A0A06; --ok: #5CD0C0; --ok-bg: #12352F;
+  --busy: #E8B95A; --busy-bg: #3A2D10; --off: #2A3A37; --off-ink: #E7EEEB; --scrim: rgba(0, 0, 0, 0.6); color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+body {
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font-body);
+  font-size: 15px;
+  line-height: 1.6;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 0 96px;
+}
+body::before {
+  content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px);
+  z-index: 10; background: var(--bg);
+}
+button, input { font: inherit; color: inherit; }
+button { cursor: pointer; }
+:focus-visible { outline: 3px solid var(--tea); outline-offset: 2px; }
+.app { max-width: 560px; margin-inline: auto; }
+.ico { width: 1.25em; height: 1.25em; flex: none; }
+
+.top {
+  position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5; background: var(--bg);
+  display: flex; align-items: center; justify-content: space-between; gap: 12px; padding-block: 14px 10px;
+}
+.brand { display: flex; align-items: center; gap: 8px; font-family: var(--font-display); font-size: 28px; line-height: 1; color: var(--tea); white-space: nowrap; }
+.brand .ico { width: 30px; height: 30px; }
+.me { background: var(--surface); border: 1px solid var(--line); border-radius: 999px; padding: 4px 14px; font-weight: 500; font-size: 14px; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+h2 { font-size: 13px; font-weight: 600; letter-spacing: 0.04em; color: var(--ink-2); margin: 22px 0 10px; display: flex; align-items: center; gap: 8px; }
+h2 .n { background: var(--tea); color: var(--tea-ink); border-radius: 999px; min-width: 20px; padding: 0 6px; text-align: center; font-size: 12px; }
+
+/* availability */
+.avail { position: relative; overflow: hidden; border-radius: 20px; padding: 18px; margin-top: 6px; background: var(--off); color: var(--off-ink); }
+.avail.on { background: var(--tea); color: var(--tea-ink); }
+.avail .deco { position: absolute; left: -18px; bottom: -22px; width: 150px; height: 150px; opacity: 0.16; }
+.avail .eyebrow { font-size: 13px; font-weight: 500; opacity: 0.9; }
+.avail .st { font-family: var(--font-display); font-size: 34px; line-height: 1.2; margin: 2px 0 4px; }
+.avail p { margin: 0 0 14px; font-size: 14px; opacity: 0.92; max-width: 30ch; }
+.avail .btn-inv { background: var(--tea-ink); color: var(--tea); border: 0; border-radius: 12px; padding: 12px 22px; font-weight: 600; font-size: 16px; position: relative; }
+.avail:not(.on) .btn-inv { background: var(--off-ink); color: var(--off); }
+
+/* order cards */
+.cards { display: grid; gap: 10px; }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 18px; padding: 14px; display: grid; gap: 10px; }
+.card .row { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
+.card .where { font-weight: 600; font-size: 16px; line-height: 1.4; min-width: 0; }
+.card .meta { color: var(--ink-2); font-size: 13px; }
+.card .lines { margin: 0; padding: 0; list-style: none; font-size: 14px; display: grid; gap: 2px; }
+.card .lines li { display: flex; justify-content: space-between; gap: 12px; }
+.card .tot { font-weight: 600; }
+.timer { flex: none; font-family: var(--font-display); font-size: 22px; line-height: 1; color: var(--tea); background: var(--surface-2); border-radius: 12px; padding: 6px 10px; font-variant-numeric: tabular-nums; }
+.timer.low { background: var(--tea); color: var(--tea-ink); }
+.btns { display: flex; gap: 10px; }
+.btns .btn, .btns .btn-line { flex: 1; }
+.card.due { border-color: var(--tea); box-shadow: 0 0 0 2px var(--tea); }
+.stat.wide { grid-column: 1 / -1; }
+.btn { background: var(--tea); color: var(--tea-ink); border: 0; border-radius: 12px; padding: 11px 18px; font-weight: 600; }
+.btn-line { background: transparent; color: var(--ink); border: 1px solid var(--line); border-radius: 12px; padding: 11px 18px; font-weight: 500; }
+.btn-ok { background: var(--ok); color: var(--surface); border: 0; border-radius: 12px; padding: 11px 18px; font-weight: 600; flex: 1; }
+.pill { display: inline-block; font-size: 12px; font-weight: 600; padding: 1px 9px; border-radius: 999px; }
+.pill.ok { background: var(--ok-bg); color: var(--ok); }
+.pill.busy { background: var(--busy-bg); color: var(--busy); }
+
+.empty { background: var(--surface); border: 1px solid var(--line); border-radius: 18px; padding: 22px 18px; text-align: center; color: var(--ink-2); display: grid; gap: 4px; justify-items: center; }
+.empty strong { font-family: var(--font-display); font-weight: 400; font-size: 22px; color: var(--ink); }
+.empty p { margin: 0; font-size: 14px; }
+.empty .ico { width: 36px; height: 36px; color: var(--tea); }
+.test { margin-top: 14px; width: 100%; }
+.demo-note { color: var(--ink-2); font-size: 12px; margin: 14px 2px 0; }
+
+/* today */
+.stats { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 6px; }
+.stat { background: var(--surface); border: 1px solid var(--line); border-radius: 18px; padding: 14px; }
+.stat span { display: block; color: var(--ink-2); font-size: 13px; }
+.stat b { font-family: var(--font-display); font-weight: 400; font-size: 30px; line-height: 1.2; display: block; margin-top: 2px; }
+.stat b small { font-family: var(--font-body); font-size: 13px; color: var(--ink-2); font-weight: 400; margin-inline-start: 4px; }
+.missed { color: var(--ink-2); font-size: 13px; margin: 10px 2px 0; }
+.hist { display: grid; gap: 8px; }
+.hist .card { grid-template-columns: minmax(0, 1fr) auto; align-items: center; padding: 12px 14px; }
+
+.snd { width: 40px; height: 40px; flex: none; border-radius: 50%; border: 1px solid var(--line); background: var(--surface); display: grid; place-items: center; color: var(--tea); }
+.snd[aria-pressed="false"] { color: var(--ink-2); }
+
+/* my drinks */
+.mlist { display: grid; gap: 8px; margin-top: 6px; }
+.mrow { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 8px 12px; background: var(--surface); border: 1px solid var(--line); border-radius: 16px; padding: 12px 14px; }
+.mrow.off .t, .mrow.off .pr { opacity: 0.55; }
+.mrow .t { font-weight: 600; font-size: 16px; }
+.pr { grid-column: 1 / -1; display: flex; align-items: center; gap: 6px; }
+.pr button { width: 34px; height: 34px; border-radius: 50%; border: 1px solid var(--line); background: var(--surface); font-size: 20px; line-height: 1; display: grid; place-items: center; }
+.pr output { min-width: 88px; text-align: center; font-weight: 500; font-variant-numeric: tabular-nums; }
+.sw { width: 52px; height: 30px; border-radius: 999px; border: 1px solid var(--line); background: var(--surface-2); position: relative; padding: 0; }
+.sw::after { content: ""; position: absolute; top: 3px; inset-inline-start: 3px; width: 22px; height: 22px; border-radius: 50%; background: var(--ink-2); transition: inset-inline-start 0.15s; }
+.sw[aria-checked="true"] { background: var(--ok); border-color: var(--ok); }
+.sw[aria-checked="true"]::after { inset-inline-start: 25px; background: var(--surface); }
+@media (prefers-reduced-motion: reduce) { .sw::after { transition: none; } }
+
+/* gate (login / join request) */
+.gate { position: fixed; inset: 0; z-index: 30; background: var(--bg); overflow-y: auto;
+  padding: max(20px, env(safe-area-inset-top, 0px)) max(16px, env(safe-area-inset-right, 0px)) max(24px, env(safe-area-inset-bottom, 0px)) max(16px, env(safe-area-inset-left, 0px)); }
+.gate-in { max-width: 460px; margin-inline: auto; display: grid; gap: 14px; }
+.gate .brand { font-size: 36px; margin-top: 8px; }
+.gate .brand .ico { width: 38px; height: 38px; }
+.seg { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; background: var(--surface-2); border-radius: 14px; padding: 4px; }
+.seg button { border: 0; background: transparent; border-radius: 10px; padding: 9px; font-weight: 500; color: var(--ink-2); }
+.seg button[aria-pressed="true"] { background: var(--surface); color: var(--tea); font-weight: 600; }
+.gform { background: var(--surface); border: 1px solid var(--line); border-radius: 20px; padding: 16px; display: grid; gap: 12px; }
+.gform label.fl { display: block; font-weight: 600; font-size: 14px; margin-bottom: 4px; }
+.in { width: 100%; background: var(--bg); border: 1px solid var(--line); border-radius: 12px; padding: 11px 12px; }
+.in.code { direction: ltr; text-align: center; font-size: 24px; letter-spacing: 0.4em; font-weight: 600; }
+.in[type="tel"] { direction: ltr; text-align: end; }
+.checks { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.chk { display: flex; align-items: center; gap: 8px; border: 1px solid var(--line); border-radius: 12px; padding: 8px 10px; background: var(--bg); font-size: 14px; }
+.chk input { width: 18px; height: 18px; accent-color: var(--tea); }
+.gerr { color: var(--tea); font-size: 13px; margin: 0; min-height: 1.2em; }
+.gnote { color: var(--ink-2); font-size: 13px; margin: 0; }
+.big-code { font-family: var(--font-display); font-size: 44px; letter-spacing: 0.25em; direction: ltr; text-align: center; color: var(--tea); background: var(--surface-2); border-radius: 14px; padding: 6px; }
+
+/* share tab */
+.shr { background: var(--surface); border: 1px solid var(--line); border-radius: 20px; padding: 16px; display: grid; gap: 12px; margin-top: 6px; }
+.shr h3 { margin: 0; font-family: var(--font-display); font-weight: 400; font-size: 24px; line-height: 1.3; }
+.shr p { margin: 0; color: var(--ink-2); font-size: 14px; }
+.qrbox { justify-self: center; width: min(240px, 100%); background: #FFFFFF; border-radius: 14px; padding: 10px; }
+.qrbox svg { display: block; width: 100%; height: auto; }
+.linkrow { display: flex; gap: 8px; align-items: center; }
+.linkrow .lk { flex: 1; min-width: 0; direction: ltr; text-align: start; background: var(--bg); border: 1px solid var(--line); border-radius: 12px; padding: 9px 10px; font-size: 13px; overflow-wrap: anywhere; user-select: all; }
+.msg { width: 100%; background: var(--bg); border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; min-height: 96px; resize: none; }
+.tips { margin: 0; padding-inline-start: 18px; color: var(--ink-2); font-size: 14px; display: grid; gap: 4px; }
+.sm { background: var(--surface-2); border: 0; border-radius: 10px; padding: 8px 14px; font-weight: 500; flex: none; }
+
+/* tabs */
+.tabs { position: fixed; inset-inline: 0; bottom: 0; background: var(--surface); border-top: 1px solid var(--line); z-index: 6;
+  padding: 8px max(16px, env(safe-area-inset-left, 0px)) calc(8px + env(safe-area-inset-bottom, 0px)) max(16px, env(safe-area-inset-right, 0px)); }
+.tabs-in { max-width: 560px; margin-inline: auto; display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; }
+.tab { background: transparent; border: 0; border-radius: 12px; padding: 8px 2px; display: grid; justify-items: center; gap: 2px; color: var(--ink-2); font-size: 13px; font-weight: 500; position: relative; }
+.tab[aria-current="page"] { color: var(--tea); background: var(--surface-2); font-weight: 600; }
+.tab .badge { position: absolute; top: 6px; left: calc(50% + 8px); width: 9px; height: 9px; border-radius: 50%; background: var(--tea); }
+.mq{display:block;overflow:hidden;white-space:nowrap;margin-top:18px;background:var(--tea);color:var(--tea-ink);border-radius:12px;padding:8px 0;font-weight:600;text-decoration:none}
+.mq-track{display:inline-flex;width:max-content;animation:mq-scroll 18s linear infinite}
+.mq-track span{display:inline-block;padding-inline:3em;direction:rtl;unicode-bidi:plaintext;white-space:nowrap}
+@keyframes mq-scroll{from{transform:translateX(-50%)}to{transform:translateX(0)}}
+@media (prefers-reduced-motion: reduce){.mq-track{animation:none}.mq{white-space:normal;padding-inline:12px}.mq-track span{padding-inline:0}}
+.callbtn,a.tel{display:inline-block;background:var(--tea);color:var(--tea-ink);border-radius:10px;padding:6px 14px;font-weight:600;text-decoration:none}
+.adc .ph{direction:rtl}
+.instbox{margin-top:14px;text-align:center}
+.sw-c{width:38px;height:38px;border-radius:50%;border:3px solid var(--surface);box-shadow:0 0 0 1px var(--line);margin:4px}
+.sw-c[aria-pressed="true"]{box-shadow:0 0 0 3px var(--ink)}
+.fberr{background:var(--tea);color:var(--tea-ink);border-radius:12px;padding:10px 14px;margin:10px 0 0;font-size:14px;font-weight:600}
+.fberr[hidden]{display:none}
+</style>
+</head>
+<body>
+<script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js"></script>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <symbol id="i-glass" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M7 6h10l-1.1 5.2c-.3 1.4-.3 2.4 0 3.3L17 18H7l1.1-3.5c.3-.9.3-1.9 0-3.3z"/>
+      <path d="M5 21h14"/>
+      <path d="M10 2.5c-.6.8.6 1.3 0 2.2M14 2.5c-.6.8.6 1.3 0 2.2"/>
+    </symbol>
+    <symbol id="i-inbox" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M4 13l2.5-7h11L20 13v6H4z"/><path d="M4 13h5l1 2h4l1-2h5"/>
+    </symbol>
+    <symbol id="i-snd" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M4 9.5h3.5L12 6v12l-4.5-3.5H4z"/><path d="M15.5 9a4 4 0 0 1 0 6M18 6.5a7.5 7.5 0 0 1 0 11"/>
+    </symbol>
+    <symbol id="i-mute" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M4 9.5h3.5L12 6v12l-4.5-3.5H4z"/><path d="M16 9.5l5 5M21 9.5l-5 5"/>
+    </symbol>
+    <symbol id="i-share" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+      <rect x="4" y="4" width="6" height="6" rx="1"/><rect x="14" y="4" width="6" height="6" rx="1"/><rect x="4" y="14" width="6" height="6" rx="1"/><path d="M14 14h2.5v2.5H14zM19 14v1M14 19h1M17.5 19H20v1"/>
+    </symbol>
+    <symbol id="i-sum" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M5 20V10M12 20V4M19 20v-7"/>
+    </symbol>
+  </defs>
+</svg>
+
+<div class="app" id="app" dir="rtl" lang="ar">
+  <header class="top">
+    <div class="brand"><svg class="ico"><use href="#i-glass"/></svg><span>مصلاوي اون لاين</span></div>
+    <div class="me" id="me"></div>
+    <button class="snd" id="snd" data-act="snd" aria-pressed="true" aria-label="الصوت شغال"></button>
+  </header>
+  <div class="fberr" id="fberr" hidden role="alert"></div>
+
+  <main id="v-orders">
+    <p class="demo-note" id="sndhint" style="margin: 6px 2px 0">اضغط أي مكان بالشاشة مرة وحدة حتى يشتغل صوت التنبيه. الصوت يشتغل والتطبيق مفتوح.</p>
+    <section id="avail"></section>
+    <div id="incoming"></div>
+    <div id="collect"></div>
+    <div id="active"></div>
+    <button class="btn-line test" data-act="test" style="margin-top:8px">جرّب الصوت</button>
+    <p class="demo-note">إذا ما سمعت شي: تأكد الجوال مو على صامت وارفع صوت الوسائط.</p>
+    <div class="instbox" id="instbox"><button class="btn-line" data-act="install">ثبّت التطبيق على الشاشة الرئيسية</button><p class="hint" id="instmsg"></p></div>
+    <p class="demo-note">خلّي التطبيق مفتوح والشاشة شغالة حتى توصلك الطلبات بالصوت.</p>
+  </main>
+
+  <main id="v-menu" hidden></main>
+  <main id="v-share" hidden></main>
+  <main id="v-today" hidden></main>
+
+  <nav class="tabs" aria-label="التنقل"><div class="tabs-in">
+    <button class="tab" id="t-orders" data-tab="orders" aria-current="page"><svg class="ico"><use href="#i-inbox"/></svg>الطلبات<span class="badge" id="badge" hidden></span></button>
+    <button class="tab" id="t-menu" data-tab="menu"><svg class="ico"><use href="#i-glass"/></svg>منتجاتي</button>
+    <button class="tab" id="t-share" data-tab="share"><svg class="ico"><use href="#i-share"/></svg>إعلاني</button>
+    <button class="tab" id="t-today" data-tab="today"><svg class="ico"><use href="#i-sum"/></svg>اليوم</button>
+  </div></nav>
+
+  <div class="gate" id="gate" hidden>
+    <div class="gate-in">
+      <div class="brand"><svg class="ico"><use href="#i-glass"/></svg><span>مصلاوي اون لاين</span></div>
+      <p class="gnote">تطبيق الچايچية. الطلبات توصلك هنا وتقبلها بضغطة.</p>
+      <div class="seg" role="group" aria-label="الدخول">
+        <button id="g-in" data-act="g-in" aria-pressed="true">دخول</button>
+        <button id="g-join" data-act="g-join" aria-pressed="false">طلب انضمام</button>
+      </div>
+
+      <form class="gform" id="f-login" novalidate>
+        <div><label class="fl" for="code">كود الدخول</label><input class="in code" id="code" maxlength="9" placeholder="XXXX-XXXX" autocomplete="off" autocapitalize="characters" spellcheck="false" style="direction:ltr;text-align:center"></div>
+        <p class="gerr" id="e-login" role="alert"></p>
+        <button class="btn" type="submit">ادخل</button>
+        <p class="gnote">الكود يعطيك إياه صاحب التطبيق.</p>
+      </form>
+
+      <form class="gform" id="f-join" novalidate hidden>
+        <div><label class="fl" for="j-name">اسمك</label><input class="in" id="j-name" maxlength="30" placeholder="مثال: أبو أحمد" autocomplete="off"></div>
+        <div><label class="fl" for="j-phone">رقم جوالك</label><input class="in" id="j-phone" type="tel" inputmode="tel" maxlength="14" placeholder="07701234567" autocomplete="off"></div>
+        <div><label class="fl" for="j-zone">المنطقة اللي تشتغل بيها</label><select class="in" id="j-zone"></select></div>
+        <div><span class="fl" style="display:block;font-weight:600;font-size:14px;margin-bottom:4px">المنتجات اللي راح تبيعها</span><div class="checks" id="j-drinks"></div></div>
+        <p class="gerr" id="e-join" role="alert"></p>
+        <button class="btn" type="submit">ارسل طلب الانضمام</button>
+      </form>
+
+      <div class="gform" id="g-wait" hidden></div>
+    </div>
+  </div>
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
+<script>
+var FBCONFIG = { apiKey: 'AIzaSyDT27G2lUpfUPcAMvRIPkllY3bzbQv87Eg', authDomain: 'chaychi-61eaf.firebaseapp.com', projectId: 'chaychi-61eaf', storageBucket: 'chaychi-61eaf.firebasestorage.app', messagingSenderId: '669532553284', appId: '1:669532553284:web:b999af1fc4824c7affbc11' };
+var ZONES_DEFAULT = [
+  { id: 'zuhoor', name: 'حي الزهور' },
+  { id: 'jamia', name: 'حي الجامعة' },
+  { id: 'dawasa', name: 'الدواسة' }
+];
+var ZONES = ZONES_DEFAULT.slice();
+var DRINKS = [];
+var HB_FRESH = 240000; /* a seller counts as available if his heartbeat is newer than 4 minutes */
+var fbOK = false, auth = null, db = null, FV = null, myUid = null;
+try {
+  firebase.initializeApp(FBCONFIG);
+  auth = firebase.auth();
+  db = firebase.firestore();
+  try { db.settings({ experimentalAutoDetectLongPolling: true, merge: true }); } catch (e) {}
+  FV = firebase.firestore.FieldValue;
+  fbOK = true;
+} catch (e) { fbOK = false; }
+function ensureAuth() {
+  return new Promise(function (res, rej) {
+    if (!fbOK) { rej(new Error('firebase')); return; }
+    var un = auth.onAuthStateChanged(function (u) {
+      un();
+      if (u) { myUid = u.uid; res(u); }
+      else auth.signInAnonymously().then(function (c) { myUid = c.user.uid; res(c.user); }, rej);
+    });
+  });
+}
+function dayKey(t) { var d = new Date(t || Date.now()); return d.getFullYear() + '-' + ('0' + (d.getMonth() + 1)).slice(-2) + '-' + ('0' + d.getDate()).slice(-2); }
+function haversine(a, b, c, d) {
+  var R = 6371000, rad = Math.PI / 180, dLat = (c - a) * rad, dLng = (d - b) * rad;
+  var x = Math.sin(dLat / 2) * Math.sin(dLat / 2) + Math.cos(a * rad) * Math.cos(c * rad) * Math.sin(dLng / 2) * Math.sin(dLng / 2);
+  return Math.round(2 * R * Math.atan2(Math.sqrt(x), Math.sqrt(1 - x)));
+}
+function showErr(msg) {
+  var b = document.getElementById('fberr');
+  if (!b) return;
+  b.textContent = msg; b.hidden = !msg;
+}
+function errText(e) {
+  var c = e && e.code || '';
+  if (c === 'permission-denied') return 'ما عندك صلاحية لهذا الإجراء.';
+  if (c === 'unavailable' || c === 'failed-precondition' && /offline/.test(e.message || '')) return 'ماكو اتصال بالإنترنت. جرّب مرة ثانية.';
+  if (c === 'auth/operation-not-allowed' || c === 'auth/admin-restricted-operation') return 'تسجيل الدخول المجهول مو مفعّل بـ Firebase.';
+  return 'صار خطأ: ' + (c || (e && e.message) || 'غير معروف');
+}
+function esc(t) { return String(t).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
+function $(id) { return document.getElementById(id); }
+function ar(n) { return String(n).replace(/\d/g, function (d) { return '٠١٢٣٤٥٦٧٨٩'[d]; }); }
+function money(n) { return ar(String(n).replace(/\B(?=(\d{3})+(?!\d))/g, ',')).replace(/,/g, '٬') + ' د.ع'; }
+function dist(m) { return m < 1000 ? ar(m) + ' م' : ar((m / 1000).toFixed(1)).replace('.', '٫') + ' كم'; }
+function glass(cls) { return '<svg class="' + (cls || 'ico') + '"><use href="#i-glass"/></svg>'; }
+function drinkName(id) { var d = DRINKS.filter(function (x) { return x.id === id; })[0]; return d ? d.name : id; }
+function zoneName(id) { var z = ZONES.filter(function (x) { return x.id === id; })[0]; return z ? z.name : id; }
+/* zones live in the database so the owner can add them from the panel; the defaults show until the first load */
+function watchZones(cb) {
+  return db.collection('zones').onSnapshot(function (s) {
+    if (!s.empty) {
+      ZONES = s.docs.map(function (d) { var x = d.data(); return { id: d.id, name: x.name, o: x.o || 0 }; }).sort(function (a, b) { return a.o - b.o || (a.name < b.name ? -1 : 1); });
+    }
+    cb(s);
+  }, function () { cb(null); });
+}
+var CODE_CHARS = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+function newCode() { var s = '', a = new Uint32Array(8); (window.crypto || window.msCrypto).getRandomValues(a); for (var i = 0; i < 8; i++) s += CODE_CHARS[a[i] % CODE_CHARS.length]; return s; }
+function normCode(t) { return String(t || '').toUpperCase().replace(/[٠-٩]/g, function (d) { return '٠١٢٣٤٥٦٧٨٩'.indexOf(d); }).replace(/[^A-Z0-9]/g, ''); }
+
+/* menu: preset drinks are stored as id -> price, custom items as id -> {n: name, p: price} */
+function menuItems(menu) {
+  var out = [], m = menu || {};
+  DRINKS.forEach(function (d) { if (typeof m[d.id] === 'number') out.push({ id: d.id, name: d.name, price: m[d.id], custom: false }); });
+  Object.keys(m).forEach(function (k) {
+    var v = m[k];
+    if (v && typeof v === 'object' && typeof v.p === 'number' && v.n && !DRINKS.some(function (d) { return d.id === k; })) out.push({ id: k, name: String(v.n).slice(0, 30), price: v.p, custom: true });
+  });
+  return out;
+}
+
+/* ---------- theme colour chosen by the owner (config/app) ---------- */
+var THEME_KEY = 'chaychi-theme', APPCFG = {};
+function hex2rgb(h) { return [parseInt(h.slice(1, 3), 16), parseInt(h.slice(3, 5), 16), parseInt(h.slice(5, 7), 16)]; }
+function lum(h) { var c = hex2rgb(h).map(function (v) { v /= 255; return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4); }); return 0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2]; }
+function rgb2hsl(r, g, b) {
+  r /= 255; g /= 255; b /= 255;
+  var mx = Math.max(r, g, b), mn = Math.min(r, g, b), l = (mx + mn) / 2, h = 0, s = 0, d = mx - mn;
+  if (d) { s = l > 0.5 ? d / (2 - mx - mn) : d / (mx + mn); h = mx === r ? ((g - b) / d + (g < b ? 6 : 0)) : mx === g ? (b - r) / d + 2 : (r - g) / d + 4; h /= 6; }
+  return [h, s, l];
+}
+function hsl2hex(h, s, l) {
+  function f(p, q, t) { if (t < 0) t += 1; if (t > 1) t -= 1; if (t < 1 / 6) return p + (q - p) * 6 * t; if (t < 1 / 2) return q; if (t < 2 / 3) return p + (q - p) * (2 / 3 - t) * 6; return p; }
+  var q = l < 0.5 ? l * (1 + s) : l + s - l * s, p = 2 * l - q;
+  return '#' + [f(p, q, h + 1 / 3), f(p, q, h), f(p, q, h - 1 / 3)].map(function (v) { return ('0' + Math.round(v * 255).toString(16)).slice(-2); }).join('');
+}
+function inkFor(h) { return lum(h) > 0.4 ? '#1A0A06' : '#FFFFFF'; }
+function applyTheme(color) {
+  if (!/^#[0-9a-fA-F]{6}$/.test(color || '')) return;
+  var rgb = hex2rgb(color), hsl = rgb2hsl(rgb[0], rgb[1], rgb[2]);
+  var dark = hsl[2] < 0.62 ? hsl2hex(hsl[0], Math.min(hsl[1], 0.75), 0.64) : color;
+  var light = lum(color) > 0.5 ? hsl2hex(hsl[0], hsl[1], 0.36) : color;
+  var css = ':root{--tea:' + light + ';--tea-ink:' + inkFor(light) + '}' +
+    '@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){--tea:' + dark + ';--tea-ink:' + inkFor(dark) + '}}' +
+    ':root[data-theme="dark"]{--tea:' + dark + ';--tea-ink:' + inkFor(dark) + '}';
+  var el = document.getElementById('themecss');
+  if (!el) { el = document.createElement('style'); el.id = 'themecss'; document.head.appendChild(el); }
+  el.textContent = css;
+  var m = document.querySelector('meta[name="theme-color"]'); if (m) m.setAttribute('content', light);
+}
+try { applyTheme(localStorage.getItem(THEME_KEY)); } catch (e) {}
+function watchConfig(cb) {
+  return db.collection('config').doc('app').onSnapshot(function (s) {
+    APPCFG = s.exists ? s.data() : {};
+    if (APPCFG.color) { applyTheme(APPCFG.color); try { localStorage.setItem(THEME_KEY, APPCFG.color); } catch (e) {} }
+    if (cb) cb(APPCFG);
+  }, function () {});
+}
+
+/* ---------- phone numbers, install to home screen ---------- */
+function normPhone(t) {
+  var s = String(t || '').replace(/[٠-٩]/g, function (d) { return '٠١٢٣٤٥٦٧٨٩'.indexOf(d); }).replace(/[\s\-()]/g, '');
+  return /^\+?\d{9,14}$/.test(s) ? s : '';
+}
+function telLink(num, label, cls) { return '<a class="' + (cls || 'tel') + '" href="tel:' + esc(num) + '">' + esc(label || num) + '</a>'; }
+var deferredInstall = null;
+window.addEventListener('beforeinstallprompt', function (e) { e.preventDefault(); deferredInstall = e; });
+function isStandalone() { try { return window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true; } catch (e) { return false; } }
+function installApp(msgEl) {
+  if (deferredInstall) { deferredInstall.prompt(); deferredInstall = null; return; }
+  var ios = /iphone|ipad|ipod/i.test(navigator.userAgent);
+  if (msgEl) msgEl.textContent = ios ? 'من زر المشاركة بسفاري اختار "إضافة إلى الشاشة الرئيسية".' : 'من قائمة كروم (⋮ فوق) اختار "تثبيت التطبيق" أو "إضافة إلى الشاشة الرئيسية".';
+}
+if ('serviceWorker' in navigator) { window.addEventListener('load', function () { navigator.serviceWorker.register('sw.js').catch(function () {}); }); }
+
+document.documentElement.dir = 'rtl';
+document.documentElement.lang = 'ar';
+
+var ORDER_WAIT = 150000;          /* ms a customer waits before his request is cancelled */
+var COLLECT_AFTER = 20 * 60000;   /* ms after delivery before the "go collect the glasses" alert */
+var CUSTOMER_LINK = 'https://radhwanmalaah-sudo.github.io/chaychi/';
+var SND_KEY = 'chaychi-seller-snd', SND_TEST = 'new';
+var PATTERNS = {
+  'new': { f: [880, 1175, 880, 1175], g: 0.2, d: 0.32, v: 0.7 },
+  collect: { f: [784, 988, 1175], g: 0.2, d: 0.4, v: 0.7 }
+};
+var VIBE = { 'new': [300, 150, 300], collect: [200, 100, 200, 100, 200] };
+/* sound: a short chime when the order status changes. Browsers only allow audio after the first tap. */
+var soundOn = true;
+try { if (localStorage.getItem(SND_KEY) === 'off') soundOn = false; } catch (e) {}
+var AC = null, AUD = null, WAVS = {};
+/* sounds are built as small WAV files and played through an audio element, which phones treat as media (it plays even when ring/silent rules mute Web Audio). Web Audio stays as a fallback. */
+function wav(freqs, gap, dur, vol) {
+  var rate = 22050, n = Math.floor(rate * (gap * (freqs.length - 1) + dur)), f32 = new Float32Array(n);
+  freqs.forEach(function (f, k) {
+    var start = Math.floor(k * gap * rate), len = Math.floor(dur * rate);
+    for (var i = 0; i < len && start + i < n; i++) {
+      var t = i / rate, env = Math.min(1, i / (rate * 0.01)) * Math.exp(-3.5 * t / dur);
+      f32[start + i] += Math.sin(2 * Math.PI * f * t) * env * vol;
+    }
+  });
+  var bytes = new Uint8Array(44 + n * 2), dv = new DataView(bytes.buffer);
+  function str(o, s) { for (var i = 0; i < s.length; i++) bytes[o + i] = s.charCodeAt(i); }
+  str(0, 'RIFF'); dv.setUint32(4, 36 + n * 2, true); str(8, 'WAVE'); str(12, 'fmt ');
+  dv.setUint32(16, 16, true); dv.setUint16(20, 1, true); dv.setUint16(22, 1, true);
+  dv.setUint32(24, rate, true); dv.setUint32(28, rate * 2, true); dv.setUint16(32, 2, true); dv.setUint16(34, 16, true);
+  str(36, 'data'); dv.setUint32(40, n * 2, true);
+  for (var j = 0; j < n; j++) dv.setInt16(44 + j * 2, Math.max(-1, Math.min(1, f32[j])) * 32767, true);
+  var bin = '';
+  for (var q = 0; q < bytes.length; q++) bin += String.fromCharCode(bytes[q]);
+  return 'data:audio/wav;base64,' + btoa(bin);
+}
+function uri(kind) {
+  if (!WAVS[kind]) {
+    var p = kind === 'silent' ? { f: [440], g: 0, d: 0.05, v: 0 } : PATTERNS[kind];
+    WAVS[kind] = wav(p.f, p.g, p.d, p.v);
+  }
+  return WAVS[kind];
+}
+function unlock() {
+  try {
+    if (!AC) AC = new (window.AudioContext || window.webkitAudioContext)();
+    if (AC.state === 'suspended') AC.resume();
+  } catch (e) {}
+  try {
+    if (!AUD) {
+      AUD = new Audio();
+      AUD.src = uri('silent');
+      var pr = AUD.play();
+      if (pr && pr.then) pr.then(function () { AUD.pause(); }).catch(function () {});
+    }
+  } catch (e) {}
+  var h = document.getElementById('sndhint'); if (h) h.hidden = true;
+}
+['pointerdown', 'touchend', 'click', 'keydown'].forEach(function (ev) { document.addEventListener(ev, unlock); });
+function tone(f, at, d) {
+  if (!AC) return;
+  var o = AC.createOscillator(), g = AC.createGain(), t = AC.currentTime + at;
+  o.type = 'sine'; o.frequency.value = f;
+  g.gain.setValueAtTime(0.0001, t);
+  g.gain.exponentialRampToValueAtTime(0.5, t + 0.02);
+  g.gain.exponentialRampToValueAtTime(0.0001, t + d);
+  o.connect(g); g.connect(AC.destination);
+  o.start(t); o.stop(t + d + 0.05);
+}
+function beep(kind) {
+  var p = PATTERNS[kind];
+  if (!p || !AC) return;
+  p.f.forEach(function (f, i) { tone(f, i * p.g, p.d); });
+}
+function chime(kind) {
+  try { if (navigator.vibrate) navigator.vibrate(VIBE[kind] || 120); } catch (e) {}
+  if (!soundOn) return;
+  var played = false;
+  try {
+    if (AUD) {
+      AUD.src = uri(kind);
+      AUD.currentTime = 0;
+      var pr = AUD.play();
+      if (pr && pr.catch) pr.catch(function () { beep(kind); });
+      played = true;
+    }
+  } catch (e) {}
+  if (!played) beep(kind);
+}
+function renderSnd() {
+  var b = $('snd');
+  b.setAttribute('aria-pressed', String(soundOn));
+  b.setAttribute('aria-label', soundOn ? 'الصوت شغال' : 'الصوت مغلق');
+  b.innerHTML = '<svg class="ico"><use href="#' + (soundOn ? 'i-snd' : 'i-mute') + '"/></svg>';
+}
+function toggleSound() {
+  soundOn = !soundOn;
+  try { localStorage.setItem(SND_KEY, soundOn ? 'on' : 'off'); } catch (e) {}
+  renderSnd();
+  if (soundOn) chime(SND_TEST);
+}
+
+
+var sid = null, prof = null, online = false, tab = 'orders';
+var omap = {}, seenNew = {}, seenDue = {}, firstLoad = { a: false, b: false };
+var unsubProf = null, unsubOpen = null, unsubDay = null, hbTimer = null, geoWatch = null, lastPos = null, wake = null;
+var myJoin = null, unsubJoin = null;
+try { myJoin = localStorage.getItem('chaychi-join') || null; } catch (e) {}
+
+function now() { return Date.now(); }
+function enabledIds() { return prof ? menuItems(prof.menu).map(function (i) { return i.id; }) : []; }
+function allOrders() { return Object.keys(omap).map(function (k) { return omap[k]; }).sort(function (a, b) { return a.createdAt - b.createdAt; }); }
+function list(st) { return allOrders().filter(function (o) { return o.status === st; }); }
+function incoming() { return list('new').filter(function (o) { return now() - o.createdAt < ORDER_WAIT + 10000; }); }
+function secsLeft(o) { return Math.max(0, Math.ceil((o.createdAt + ORDER_WAIT - now()) / 1000)); }
+function isDue(o) { return o.status === 'delivered' && (o.collectCalled || now() - (o.deliveredAt || o.statusAt) >= COLLECT_AFTER); }
+function dueCount() { return allOrders().filter(isDue).length; }
+function clock(t) { var d = new Date(t); return ar(('0' + d.getHours()).slice(-2)) + ':' + ar(('0' + d.getMinutes()).slice(-2)); }
+function fmt(sec) { return ar(Math.floor(sec / 60)) + ':' + ar(('0' + (sec % 60)).slice(-2)); }
+function num(n) { return ar(String(n).replace(/\B(?=(\d{3})+(?!\d))/g, ',')).replace(/,/g, '٬'); }
+function ordDoc(id) { return db.collection('orders').doc(id); }
+function setOrder(id, patch) {
+  patch.statusAt = now();
+  return ordDoc(id).update(patch).catch(function (e) { showErr(errText(e)); });
+}
+
+function linesHtml(o) {
+  return '<ul class="lines">' + o.lines.map(function (l) { return '<li><span>' + ar(l.q) + ' × ' + esc(l.n) + '</span><span>' + money(l.q * l.p) + '</span></li>'; }).join('') + '</ul>';
+}
+function payPill(o) {
+  return '<div style="margin-top:4px"><span class="pill ' + (o.pay === 'now' ? 'ok' : 'busy') + '">' +
+    (o.pay === 'now' ? 'الدفع عند التسليم' : 'الدفع لاحقاً') + '</span></div>';
+}
+function phoneLink(o) {
+  return o.phone && o.phone !== 'none' ? '<div class="meta">' + telLink(o.phone, 'اتصل بالزبون ' + o.phone, 'callbtn') + '</div>' : '';
+}
+function mapLink(o) {
+  if (typeof o.lat !== 'number' || typeof o.lng !== 'number') return '';
+  var dm = (prof && typeof prof.lat === 'number') ? '<span> · ' + dist(haversine(prof.lat, prof.lng, o.lat, o.lng)) + '</span>' : '';
+  return '<div class="meta"><a href="https://www.google.com/maps?q=' + o.lat + ',' + o.lng + '" target="_blank" rel="noopener" style="color:var(--tea);font-weight:600">افتح موقع الزبون بالخريطة</a>' + dm + '</div>';
+}
+
+/* ---------- screens ---------- */
+function renderAvail() {
+  var none = enabledIds().length === 0;
+  $('avail').innerHTML = '<div class="avail' + (online ? ' on' : '') + '">' + glass('deco') +
+    '<div class="eyebrow">حالتك الحين</div>' +
+    '<div class="st">' + (online ? 'متاح للطلبات' : 'مو متاح') + '</div>' +
+    '<p>' + (online ? 'الزبائن بمنطقتك يشوفونك ويطلبون منك. خلّي التطبيق مفتوح والشاشة شغالة.' : 'ما راح توصلك طلبات لين ترجع متاح.') + '</p>' +
+    '<button class="btn-inv" data-act="toggle">' + (online ? 'وقّف الطلبات' : (none ? 'أضف منتج أولاً' : 'ابدأ استقبال الطلبات')) + '</button></div>';
+}
+function renderIncoming() {
+  var inc = incoming();
+  var html = '<h2>طلبات جديدة' + (inc.length ? '<span class="n">' + ar(inc.length) + '</span>' : '') + '</h2>';
+  if (!inc.length) {
+    html += '<div class="empty">' + glass() + '<strong>' + (online ? 'ننتظر طلب جديد' : 'أنت مو متاح') + '</strong><p>' +
+      (online ? 'أول ما أحد يطلب منك يطلع هنا.' : 'شغّل الاستقبال حتى توصلك الطلبات.') + '</p></div>';
+  } else {
+    html += '<div class="cards">' + inc.map(function (o) {
+      var s = secsLeft(o);
+      return '<div class="card"><div class="row"><div><div class="where" data-w="' + o.id + '"></div>' + mapLink(o) + phoneLink(o) + payPill(o) + '</div>' +
+        '<div class="timer' + (s <= 10 ? ' low' : '') + '" data-t="' + o.id + '">' + ar(s) + '</div></div>' +
+        linesHtml(o) + '<div class="row tot"><span>المجموع</span><span>' + money(o.total) + '</span></div>' +
+        '<div class="btns"><button class="btn" data-act="accept" data-id="' + o.id + '">اقبل</button>' +
+        '<button class="btn-line" data-act="reject" data-id="' + o.id + '">ارفض</button></div></div>';
+    }).join('') + '</div>';
+  }
+  $('incoming').innerHTML = html;
+  inc.forEach(function (o) { var el = document.querySelector('[data-w="' + o.id + '"]'); if (el) el.textContent = o.loc; });
+}
+function renderActive() {
+  var act = allOrders().filter(function (o) { return o.status === 'accepted' || o.status === 'onway'; });
+  if (!act.length) { $('active').innerHTML = ''; return; }
+  $('active').innerHTML = '<h2>طلباتك الحالية<span class="n">' + ar(act.length) + '</span></h2><div class="cards">' + act.map(function (o) {
+    var onway = o.status === 'onway';
+    return '<div class="card"><div class="row"><div><div class="where" data-a="' + o.id + '"></div>' + mapLink(o) + phoneLink(o) + payPill(o) + '</div>' +
+      '<span class="pill ' + (onway ? 'ok' : 'busy') + '">' + (onway ? 'بالطريق' : 'جاهز تطلع') + '</span></div>' +
+      linesHtml(o) + '<div class="row tot"><span>المجموع</span><span>' + money(o.total) + '</span></div>' +
+      '<div class="btns">' + (onway
+        ? '<button class="btn-ok" data-act="deliver" data-id="' + o.id + '">' + (o.pay === 'now' ? 'سلّمت واستلمت المبلغ' : 'سلّمت الطلب') + '</button>'
+        : '<button class="btn" data-act="go" data-id="' + o.id + '">طلعت للزبون</button>') + '</div></div>';
+  }).join('') + '</div>';
+  act.forEach(function (o) { var el = document.querySelector('[data-a="' + o.id + '"]'); if (el) el.textContent = o.loc; });
+}
+function renderCollect() {
+  var col = list('delivered');
+  if (!col.length) { $('collect').innerHTML = ''; return; }
+  $('collect').innerHTML = '<h2>استلام المبلغ<span class="n">' + ar(col.length) + '</span></h2><div class="cards">' + col.map(function (o) {
+    var due = isDue(o), left = Math.max(0, Math.ceil(((o.deliveredAt || o.statusAt) + COLLECT_AFTER - now()) / 1000));
+    return '<div class="card' + (due ? ' due' : '') + '"><div class="row"><div><div class="where" data-c="' + o.id + '"></div>' + mapLink(o) + phoneLink(o) +
+      '<div class="meta">لمّ ' + ar(o.qty) + ' واستلم ' + money(o.total) + (o.collectCalled ? ' · الزبون ناداك' : '') + '</div></div>' +
+      (due ? '<span class="pill busy">حان وقت اللمّ</span>' : '<div class="timer" data-cd="' + o.id + '">' + fmt(left) + '</div>') + '</div>' +
+      '<div class="btns"><button class="btn-ok" data-act="collected" data-id="' + o.id + '">لمّيت واستلمت المبلغ</button>' +
+      '<button class="btn-line" data-act="noshow" data-id="' + o.id + '">ما لقيت الزبون</button></div></div>';
+  }).join('') + '</div>';
+  col.forEach(function (o) { var el = document.querySelector('[data-c="' + o.id + '"]'); if (el) el.textContent = o.loc; });
+}
+function renderToday() {
+  var today = dayKey();
+  var mine = allOrders().filter(function (o) { return o.day === today; });
+  var done = mine.filter(function (o) { return o.status === 'paid'; }), unpaid = mine.filter(function (o) { return o.status === 'unpaid'; });
+  var wait = list('delivered');
+  var missed = mine.filter(function (o) { return o.status === 'cancelled' && o.statusAt - o.createdAt >= ORDER_WAIT - 1000; }).length;
+  var sum = done.reduce(function (t, o) { return t + o.total; }, 0);
+  var owed = wait.reduce(function (t, o) { return t + o.total; }, 0);
+  var rows = mine.filter(function (o) { return o.status === 'paid' || o.status === 'unpaid'; });
+  var html = '<div class="stats"><div class="stat"><span>طلبات خلصت</span><b>' + ar(done.length) + '</b></div>' +
+    '<div class="stat"><span>مبلغ استلمته</span><b>' + num(sum) + '<small>د.ع</small></b></div>' +
+    '<div class="stat wide"><span>باقي لك عند الزبائن</span><b>' + num(owed) + '<small>د.ع</small></b></div></div>' +
+    '<div class="missed">' + (missed ? 'فاتتك ' + ar(missed) + ' طلب انتهى وقته. ' : 'ما فاتك ولا طلب. ') + (unpaid.length ? ar(unpaid.length) + ' زبون ما دفع.' : '') + '</div>' +
+    '<h2>سجل اليوم</h2>';
+  if (!rows.length) {
+    html += '<div class="empty">' + glass() + '<strong>ماكو طلبات خالصة</strong><p>أول طلب تسلّمه وتستلم مبلغه يظهر هنا.</p></div>';
+  } else {
+    html += '<div class="hist">' + rows.slice().reverse().map(function (o) {
+      return '<div class="card"><div><div class="where" data-h="' + o.id + '"></div><div class="meta">' + clock(o.statusAt) + ' · ' + ar(o.qty) + ' مشروب</div></div>' +
+        '<div class="tot">' + (o.status === 'unpaid' ? '<span class="pill busy">ما دفع</span>' : money(o.total)) + '</div></div>';
+    }).join('') + '</div>';
+  }
+  $('v-today').innerHTML = html;
+  rows.forEach(function (o) { var el = document.querySelector('[data-h="' + o.id + '"]'); if (el) el.textContent = o.loc; });
+}
+function renderMenu() {
+  var ids = enabledIds(), menu = (prof && prof.menu) || {}, items = menuItems(menu);
+  var customs = items.filter(function (i) { return i.custom; });
+  function row(id, name, on, p, del) {
+    return '<div class="mrow' + (on ? '' : ' off') + '"><div class="t">' + esc(name) + '</div>' +
+      (del ? '<button class="btn-line" data-act="delc" data-m="' + esc(id) + '" style="padding:4px 10px;font-size:13px">احذف</button>'
+           : '<button class="sw" role="switch" aria-checked="' + on + '" aria-label="' + esc(name) + '" data-act="mon" data-m="' + id + '"></button>') +
+      '<div class="pr"><button data-act="pm" data-m="' + esc(id) + '" aria-label="نقّص سعر ' + esc(name) + '">−</button><output>' + money(p) + '</output>' +
+      '<button data-act="pp" data-m="' + esc(id) + '" aria-label="زيّد سعر ' + esc(name) + '">+</button></div></div>';
+  }
+  $('v-menu').innerHTML = '<h2>المنتجات اللي عندك</h2>' +
+    (ids.length ? '' : '<div class="empty" style="margin-bottom:10px"><strong>ماكو منتج</strong><p>أضف منتج واحد على الأقل حتى تستقبل طلبات.</p></div>') +
+    '<div class="mlist">' + customs.map(function (i) { return row(i.id, i.name, true, i.price, true); }).join('') + '</div>' +
+    '<h2>أضف منتج</h2>' +
+    '<form class="gform" id="f-custom" novalidate style="background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:14px">' +
+    '<div><label class="fl" for="cn">اسم المنتج</label><input class="in" id="cn" maxlength="40" placeholder="مثال: تليفون، طباعة، توصيل طرد" autocomplete="off"></div>' +
+    '<div><label class="fl" for="cp">السعر</label><input class="in" id="cp" inputmode="numeric" maxlength="12" placeholder="120000" autocomplete="off" style="direction:ltr;text-align:end"></div>' +
+    '<p class="gerr" id="e-custom" role="alert"></p><button class="btn" type="submit">أضف للقائمة</button></form>' +
+    '<p class="demo-note">الزبون يشوف منتجاتك وأسعارك ويطلب بالعدد اللي يريده.</p>';
+}
+function saveMenu(menu) {
+  prof.menu = menu;
+  renderAll();
+  db.collection('sellers').doc(sid).update({ menu: menu }).catch(function (e) { showErr(errText(e)); });
+  if (!menuItems(menu).length && online) setOnline(false);
+}
+function toggleDrink(id) {
+  var menu = Object.assign({}, prof.menu || {}), d = DRINKS.filter(function (x) { return x.id === id; })[0];
+  if (typeof menu[id] === 'number') delete menu[id]; else menu[id] = d.price;
+  saveMenu(menu);
+}
+function stepPrice(id, delta) {
+  var menu = Object.assign({}, prof.menu || {}), v = menu[id];
+  if (typeof v === 'number') menu[id] = Math.max(0, Math.min(999999999, v + delta));
+  else if (v && typeof v === 'object') menu[id] = { n: v.n, p: Math.max(0, Math.min(999999999, v.p + delta)) };
+  else return;
+  saveMenu(menu);
+}
+function addCustom(e) {
+  e.preventDefault();
+  var n = $('cn').value.trim(), p = parseInt(String($('cp').value).replace(/[^\d]/g, ''), 10);
+  var err = '';
+  if (!n) err = 'اكتب اسم المنتج.';
+  else if (isNaN(p) || p < 0 || p > 999999999) err = 'اكتب سعر صحيح، من ٠ إلى ٩٩٩٬٩٩٩٬٩٩٩.';
+  else if (menuItems(prof.menu).length >= 50) err = 'وصلت الحد الأعلى للقائمة.';
+  if (err) { $('e-custom').textContent = err; return; }
+  var menu = Object.assign({}, prof.menu || {});
+  menu['c' + Date.now().toString(36)] = { n: n, p: p };
+  saveMenu(menu);
+}
+function delCustom(id) { var menu = Object.assign({}, prof.menu || {}); delete menu[id]; saveMenu(menu); }
+function renderAll() {
+  if (!prof) return;
+  renderAvail(); renderIncoming(); renderCollect(); renderActive(); renderToday(); renderMenu();
+  $('badge').hidden = incoming().length + dueCount() === 0;
+  checkAlerts();
+}
+function checkAlerts() {
+  var fresh = false, due = false;
+  incoming().forEach(function (o) { if (!seenNew[o.id]) { seenNew[o.id] = 1; if (firstLoad.a) fresh = true; } });
+  allOrders().forEach(function (o) { if (isDue(o) && !seenDue[o.id]) { seenDue[o.id] = 1; if (firstLoad.a) due = true; } });
+  if (fresh && online) chime('new'); else if (due) chime('collect');
+}
+function go(t) {
+  tab = t;
+  ['orders', 'menu', 'share', 'today'].forEach(function (k) {
+    $('v-' + k).hidden = t !== k;
+    $('t-' + k).setAttribute('aria-current', t === k ? 'page' : 'false');
+  });
+  if (t === 'share') renderShare();
+  window.scrollTo(0, 0);
+}
+
+/* ---------- presence ---------- */
+function beat() {
+  if (!sid || !online) return;
+  var p = { hb: now(), online: true };
+  if (lastPos) { p.lat = lastPos.lat; p.lng = lastPos.lng; }
+  db.collection('sellers').doc(sid).update(p).catch(function (e) { showErr(errText(e)); });
+}
+function startGeo() {
+  if (!navigator.geolocation || geoWatch !== null) return;
+  try {
+    geoWatch = navigator.geolocation.watchPosition(function (p) {
+      var first = !lastPos;
+      lastPos = { lat: p.coords.latitude, lng: p.coords.longitude };
+      if (first) beat();
+    }, function () {}, { enableHighAccuracy: true, maximumAge: 30000, timeout: 20000 });
+  } catch (e) {}
+}
+function stopGeo() { try { if (geoWatch !== null) navigator.geolocation.clearWatch(geoWatch); } catch (e) {} geoWatch = null; }
+function keepAwake() {
+  try { if (navigator.wakeLock && online && !wake) navigator.wakeLock.request('screen').then(function (w) { wake = w; w.addEventListener('release', function () { wake = null; }); }, function () {}); } catch (e) {}
+}
+document.addEventListener('visibilitychange', function () { if (!document.hidden) { keepAwake(); beat(); } });
+function setOnline(v) {
+  if (v && !enabledIds().length) { go('menu'); return; }
+  online = v;
+  var p = { online: v, hb: now() };
+  if (v && lastPos) { p.lat = lastPos.lat; p.lng = lastPos.lng; }
+  db.collection('sellers').doc(sid).update(p).catch(function (e) { showErr(errText(e)); });
+  clearInterval(hbTimer);
+  if (v) { hbTimer = setInterval(beat, 60000); startGeo(); keepAwake(); }
+  else { stopGeo(); try { if (wake) wake.release(); } catch (e) {} wake = null; }
+  renderAll();
+}
+
+/* ---------- session ---------- */
+function listenOrders() {
+  omap = {}; seenNew = {}; seenDue = {}; firstLoad = { a: false, b: false };
+  function apply(snap, which) {
+    snap.docChanges().forEach(function (c) {
+      if (c.type === 'removed') delete omap[c.doc.id];
+      else { var x = c.doc.data(); x.id = c.doc.id; omap[x.id] = x; }
+    });
+    if (!firstLoad[which]) {
+      firstLoad[which] = true;
+      /* orders already waiting when the app opens do not ring as "new" the first time, they just show */
+    }
+    if (firstLoad.a && firstLoad.b) renderAll(); else renderAll();
+    firstLoad.a = firstLoad.a || which === 'a';
+  }
+  var base = db.collection('orders').where('sellerId', '==', sid);
+  unsubOpen = base.where('open', '==', true).onSnapshot(function (s) { apply(s, 'a'); showErr(''); }, function (e) { showErr(errText(e)); });
+  unsubDay = base.where('day', '==', dayKey()).onSnapshot(function (s) { apply(s, 'b'); }, function (e) { showErr(errText(e)); });
+}
+function startSession(id) {
+  sid = id;
+  try { localStorage.setItem('chaychi-seller-sid', sid); } catch (e) {}
+  $('gate').hidden = true;
+  go('orders');
+  if (unsubProf) unsubProf();
+  unsubProf = db.collection('sellers').doc(sid).onSnapshot(function (snap) {
+    if (!snap.exists) { logout('انحذف حسابك من صاحب التطبيق.'); return; }
+    var first = !prof;
+    prof = snap.data();
+    $('me').textContent = prof.name + ' · ' + zoneName(prof.zone);
+    if (first) { online = false; listenOrders(); if (prof.online && (now() - (prof.hb || 0)) < HB_FRESH) { online = true; hbTimer = setInterval(beat, 60000); startGeo(); keepAwake(); } }
+    renderAll(); if (tab === 'share') renderShare();
+  }, function (e) { logout(errText(e)); });
+}
+function logout(msg) {
+  if (sid && prof) { try { db.collection('sellers').doc(sid).update({ online: false }).catch(function () {}); } catch (e) {} }
+  [unsubProf, unsubOpen, unsubDay].forEach(function (u) { if (u) u(); });
+  unsubProf = unsubOpen = unsubDay = null;
+  clearInterval(hbTimer); stopGeo();
+  sid = null; prof = null; online = false; omap = {};
+  try { localStorage.removeItem('chaychi-seller-sid'); } catch (e) {}
+  $('code').value = '';
+  document.querySelector('.gate .seg').hidden = false;
+  gateTab('in');
+  $('gate').hidden = false;
+  $('e-login').textContent = typeof msg === 'string' ? msg : '';
+}
+
+/* ---------- share ---------- */
+function copyText(srcId, btn) {
+  var el = document.getElementById(srcId);
+  if (!el) return;
+  var text = el.value !== undefined && el.tagName === 'TEXTAREA' ? el.value : el.textContent;
+  var old = btn.getAttribute('data-label') || btn.textContent;
+  btn.setAttribute('data-label', old);
+  function done(ok) {
+    btn.textContent = ok ? 'تم النسخ' : 'حدده وانسخه';
+    setTimeout(function () { btn.textContent = old; }, 1600);
+  }
+  function fallback() {
+    try {
+      if (el.select) { el.select(); } else { var r = document.createRange(); r.selectNodeContents(el); var sel = window.getSelection(); sel.removeAllRanges(); sel.addRange(r); }
+    } catch (e) {}
+    done(false);
+  }
+  try {
+    navigator.clipboard.writeText(text).then(function () { done(true); }, fallback);
+  } catch (e) { fallback(); }
+}
+function renderShare() {
+  if (!prof) return;
+  var qr = '';
+  try {
+    var q = qrcode(0, 'M'); q.addData(CUSTOMER_LINK); q.make();
+    qr = q.createSvgTag({ cellSize: 4, margin: 2, scalable: true });
+  } catch (e) { qr = ''; }
+  var msg = 'أهلاً، أني ' + prof.name + ' چايچي بـ' + zoneName(prof.zone) + '. اطلب الچاي لحد مكانك من تطبيق مصلاوي اون لاين: ' + CUSTOMER_LINK;
+  $('v-share').innerHTML =
+    '<div class="shr"><h3>خلّي زبائنك يطلبون منك</h3><p>الزبون يمسح الكود أو يفتح الرابط، وبعدين يشوفك بقائمة الچايچية بمنطقتك.</p>' +
+    (qr ? '<div class="qrbox" role="img" aria-label="QR كود تطبيق الزبون">' + qr + '</div>' : '<p>تعذر رسم الكود، استخدم الرابط تحت.</p>') +
+    '<ul class="tips"><li>ألصق الكود على صينيتك أو عربتك بمكان واضح.</li><li>صوّر الشاشة واطبع الكود حتى يكون كبير.</li><li>قل لزبائنك المعتادين يطلبون منك من التطبيق.</li></ul></div>' +
+    '<div class="shr"><h3>رابط التطبيق</h3><div class="linkrow"><div class="lk" id="lk"></div><button class="sm" data-act="copy" data-src="lk">انسخ</button></div></div>' +
+    '<div class="shr"><h3>رسالة جاهزة للواتساب</h3><textarea class="msg" id="msgbox" readonly></textarea><div class="linkrow"><button class="sm" data-act="copy" data-src="msgbox">انسخ الرسالة</button></div></div>' +
+    '<div class="shr"><button class="btn-line" data-act="logout">خروج من حسابي</button></div>';
+  $('lk').textContent = CUSTOMER_LINK;
+  $('msgbox').value = msg;
+}
+
+/* ---------- gate: login code, join request ---------- */
+function gateTab(t) {
+  var login = t === 'in';
+  $('g-in').setAttribute('aria-pressed', String(login));
+  $('g-join').setAttribute('aria-pressed', String(!login));
+  $('f-login').hidden = !login;
+  $('f-join').hidden = login;
+  $('g-wait').hidden = true;
+  $('e-login').textContent = ''; $('e-join').textContent = '';
+}
+function showGate() {
+  $('gate').hidden = false;
+  if (myJoin) watchJoin(); else gateTab('in');
+}
+function loginWith(code, errEl) {
+  var c = normCode(code);
+  if (c.length !== 8) { errEl.textContent = 'اكتب الكود كامل، ثمان خانات.'; return; }
+  errEl.textContent = '';
+  ensureAuth().then(function () {
+    return db.collection('sellerCodes').doc(c).get();
+  }).then(function (snap) {
+    if (!snap.exists) { errEl.textContent = 'الكود غلط. اسأل صاحب التطبيق.'; return; }
+    var id = snap.data().sid;
+    return db.collection('sellerPrivate').doc(id).update({ uid: myUid, claimCode: c }).then(function () {
+      try { localStorage.removeItem('chaychi-join'); } catch (e) {}
+      myJoin = null;
+      startSession(id);
+    });
+  }).catch(function (e) { errEl.textContent = errText(e); });
+}
+function watchJoin() {
+  if (unsubJoin) unsubJoin();
+  document.querySelector('.gate .seg').hidden = true;
+  $('f-login').hidden = true; $('f-join').hidden = true;
+  var w = $('g-wait'); w.hidden = false;
+  w.innerHTML = '<div class="brand" style="font-size:26px">وصل طلبك</div><p class="gnote">ننتظر موافقة صاحب التطبيق. هذي الصفحة تتحدث لحالها.</p><button class="btn-line" data-act="back">رجوع</button>';
+  ensureAuth().then(function () {
+    unsubJoin = db.collection('joinRequests').doc(myJoin).onSnapshot(function (snap) {
+      if (!snap.exists) { forgetJoin(); return; }
+      var r = snap.data();
+      if (r.status === 'approved' && r.code) {
+        w.innerHTML = '<div class="brand" style="font-size:26px">تمت الموافقة</div><p class="gnote">هذا كود دخولك. احفظه.</p><div class="big-code" id="bigcode"></div>' +
+          '<button class="btn" data-act="enter">ادخل للتطبيق</button>';
+        $('bigcode').textContent = r.code.slice(0, 4) + '-' + r.code.slice(4);
+        w.dataset.code = r.code;
+        chime('collect');
+      } else if (r.status === 'rejected') {
+        w.innerHTML = '<div class="brand" style="font-size:26px">ما انقبل الطلب</div><p class="gnote">صاحب التطبيق ما وافق هذي المرة.</p><button class="btn-line" data-act="back">رجوع</button>';
+      }
+    }, function (e) { w.insertAdjacentHTML('beforeend', '<p class="gerr">' + esc(errText(e)) + '</p>'); });
+  }, function (e) { w.insertAdjacentHTML('beforeend', '<p class="gerr">' + esc(errText(e)) + '</p>'); });
+}
+function forgetJoin() {
+  if (unsubJoin) { unsubJoin(); unsubJoin = null; }
+  try { localStorage.removeItem('chaychi-join'); } catch (e) {}
+  myJoin = null;
+  document.querySelector('.gate .seg').hidden = false;
+  gateTab('in');
+}
+
+$('f-login').addEventListener('submit', function (e) { e.preventDefault(); loginWith($('code').value, $('e-login')); });
+function fillZones() {
+  var cur = $('j-zone').value;
+  $('j-zone').innerHTML = ZONES.map(function (z) { return '<option value="' + z.id + '">' + esc(z.name) + '</option>'; }).join('');
+  if (cur) $('j-zone').value = cur;
+}
+fillZones();
+$('j-drinks').innerHTML = '<span class="note">بعد الموافقة تضيف منتجاتك من داخل التطبيق.</span>';
+$('f-join').addEventListener('submit', function (e) {
+  e.preventDefault();
+  var name = $('j-name').value.trim(), phone = $('j-phone').value.trim().replace(/[\s-]/g, '');
+  var drinks = Array.prototype.map.call(document.querySelectorAll('#j-drinks input:checked'), function (i) { return i.value; });
+  var err = '';
+  if (!name) err = 'اكتب اسمك.';
+  else if (!/^\+?\d{9,14}$/.test(phone)) err = 'رقم الجوال لازم يكون أرقام فقط، مثال 07701234567.';
+  else if (!drinks.length) err = ''; // المنتجات تُضاف لاحقاً من التطبيق
+  $('e-join').textContent = err;
+  if (err) return;
+  ensureAuth().then(function () {
+    return db.collection('joinRequests').add({ uid: myUid, name: name, phone: phone, zone: $('j-zone').value, drinks: drinks, status: 'pending', createdAt: now() });
+  }).then(function (ref) {
+    myJoin = ref.id;
+    try { localStorage.setItem('chaychi-join', myJoin); } catch (x) {}
+    watchJoin();
+  }).catch(function (x) { $('e-join').textContent = errText(x); });
+});
+
+/* ---------- events ---------- */
+document.addEventListener('submit', function (e) { if (e.target && e.target.id === 'f-custom') addCustom(e); });
+document.addEventListener('click', function (e) {
+  if (e.target.closest('a[href^="tel:"],a[href^="https://www.google.com/maps"]')) return;
+  var t = e.target.closest('[data-act],[data-tab]');
+  if (!t) return;
+  if (t.dataset.tab) { go(t.dataset.tab); return; }
+  var a = t.dataset.act, id = t.dataset.id;
+  if (a === 'toggle') setOnline(!online);
+  else if (a === 'accept') { setOrder(id, { status: 'accepted' }); }
+  else if (a === 'reject') { setOrder(id, { status: 'rejected', open: false }); }
+  else if (a === 'go') setOrder(id, { status: 'onway' });
+  else if (a === 'deliver') {
+    var o = omap[id];
+    if (o && o.pay === 'now') setOrder(id, { status: 'paid', paidAt: now(), open: false });
+    else setOrder(id, { status: 'delivered', deliveredAt: now() });
+  }
+  else if (a === 'collected') setOrder(id, { status: 'paid', paidAt: now(), open: false });
+  else if (a === 'noshow') setOrder(id, { status: 'unpaid', open: false });
+  else if (a === 'mon') toggleDrink(t.dataset.m);
+  else if (a === 'delc') delCustom(t.dataset.m);
+  else if (a === 'pm') stepPrice(t.dataset.m, -1000);
+  else if (a === 'pp') stepPrice(t.dataset.m, 1000);
+  else if (a === 'snd') toggleSound();
+  else if (a === 'test') { unlock(); chime('new'); }
+  else if (a === 'g-in') gateTab('in');
+  else if (a === 'g-join') gateTab('join');
+  else if (a === 'copy') copyText(t.dataset.src, t);
+  else if (a === 'install') installApp($('instmsg'));
+  else if (a === 'logout') logout();
+  else if (a === 'enter') { var w = $('g-wait'); loginWith(w.dataset.code || '', $('e-login')); }
+  else if (a === 'back') forgetJoin();
+});
+
+/* second by second: countdowns, and expired requests drop off */
+setInterval(function () {
+  if (!prof) return;
+  var inc = incoming();
+  if (inc.length !== document.querySelectorAll('[data-t]').length) { renderAll(); return; }
+  inc.forEach(function (o) {
+    var el = document.querySelector('[data-t="' + o.id + '"]'), s = secsLeft(o);
+    if (el) { el.textContent = ar(s); el.className = 'timer' + (s <= 10 ? ' low' : ''); }
+  });
+  list('delivered').forEach(function (o) {
+    var el = document.querySelector('[data-cd="' + o.id + '"]');
+    if (el) { var left = Math.max(0, Math.ceil(((o.deliveredAt || o.statusAt) + COLLECT_AFTER - now()) / 1000)); if (left <= 0) renderAll(); else el.textContent = fmt(left); }
+  });
+  checkAlerts();
+}, 1000);
+/* keep ringing while a request is waiting */
+setInterval(function () {
+  if (!prof) return;
+  if (online && incoming().length > 0) chime('new');
+  else if (dueCount() > 0) chime('collect');
+}, 6000);
+
+/* start */
+renderSnd();
+if (isStandalone()) { $('instbox').hidden = true; }
+ensureAuth().then(function () {
+  watchConfig();
+  watchZones(function () { fillZones(); if (prof) { $('me').textContent = prof.name + ' · ' + zoneName(prof.zone); } });
+  var kept = null;
+  try { kept = localStorage.getItem('chaychi-seller-sid'); } catch (e) {}
+  if (!kept) { showGate(); return; }
+  db.collection('sellerPrivate').doc(kept).get().then(function (s) {
+    if (s.exists) startSession(kept); else showGate();
+  }, function () { showGate(); });
+}, function (e) { showGate(); $('e-login').textContent = errText(e); });
+
+</script>
+</body>
+</html>
