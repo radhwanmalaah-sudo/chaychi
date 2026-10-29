@@ -4,7 +4,14 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#A6311A">
-<title>صفحة المحل — مصلاوي اون لاين</title>
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="صالة">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<title>مصلاوي اون لاين — صفحة صالة</title>
+<link rel="manifest" href="manifest-shop.json">
+<link rel="apple-touch-icon" href="icon-seller-192.png">
+<link rel="icon" type="image/png" sizes="192x192" href="icon-seller-192.png">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;600&family=Lalezar&display=swap">
 <style>
 :root {
@@ -68,12 +75,14 @@ form.g { background: var(--surface); border: 1px solid var(--line); border-radiu
 }
 .orders-panel h2 { margin-top: 0; color: var(--tea); }
 .orders-panel .olist { display: grid; gap: 10px; max-height: 55vh; overflow-y: auto; }
+.instbox { margin-top: 10px; text-align: center; }
+.instbox .hint { margin: 6px 0 0; font-size: 12px; color: var(--ink-2); min-height: 1.2em; }
 
 </style>
 </head>
 <body>
 <div class="app">
-  <div class="brand">مصلاوي اون لاين — صفحة المحل</div>
+  <div class="brand" id="brand">مصلاوي اون لاين — صفحة صالة</div>
 
   <section id="gate">
     <p class="note">أدخل كود الدخول اللي وصلك من صاحب التطبيق.</p>
@@ -94,6 +103,10 @@ form.g { background: var(--surface); border: 1px solid var(--line); border-radiu
         <button class="btn-line" data-act="logout">خروج</button>
       </div>
       <p class="note" id="sndhint" hidden>اضغط أي مكان مرة حتى يتفعّل الصوت على الموبايل.</p>
+      <div class="instbox" id="instbox">
+        <button type="button" class="btn" data-act="install" style="width:100%;margin-top:8px">ثبّت الصفحة على الشاشة الرئيسية</button>
+        <p class="hint" id="instmsg"></p>
+      </div>
     </div>
 
     <div class="tabs" role="tablist">
@@ -199,6 +212,48 @@ function parsePrice(s) {
 function normCode(c) { return String(c || '').trim().toUpperCase().replace(/[^A-Z0-9]/g, ''); }
 
 var ad = null, adId = null, unsub = null, unsubOrders = null, adOrders = [];
+
+var deferredInstall = null;
+window.addEventListener('beforeinstallprompt', function (e) {
+  e.preventDefault();
+  deferredInstall = e;
+  var box = document.getElementById('instbox');
+  if (box) box.hidden = false;
+});
+window.addEventListener('appinstalled', function () {
+  deferredInstall = null;
+  var box = document.getElementById('instbox');
+  if (box) box.hidden = true;
+});
+function isStandalone() {
+  try {
+    return window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+  } catch (e) { return false; }
+}
+function installApp(msgEl) {
+  if (deferredInstall) {
+    deferredInstall.prompt();
+    deferredInstall.userChoice.then(function () { deferredInstall = null; }).catch(function () {});
+    return;
+  }
+  var ua = navigator.userAgent || '';
+  var msg = /iphone|ipad|ipod/i.test(ua)
+    ? 'من Safari: زر المشاركة ← «إضافة إلى الشاشة الرئيسية».'
+    : (/android/i.test(ua)
+      ? 'من قائمة كروم (⋮) اختر «تثبيت التطبيق» أو «إضافة إلى الشاشة الرئيسية».'
+      : 'من قائمة المتصفح اختر تثبيت أو إضافة إلى الشاشة الرئيسية.');
+  if (msgEl) msgEl.textContent = msg;
+}
+if (isStandalone()) {
+  var ib = document.getElementById('instbox');
+  if (ib) ib.hidden = true;
+}
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', function () {
+    navigator.serviceWorker.register('sw.js').catch(function () {});
+  });
+}
+
 var CUR_L = { iqd: 'دينار عراقي', usd: 'دولار', none: 'بدون سعر' };
 var SND_KEY = 'mousl-shop-snd';
 var soundOn = true;
@@ -366,6 +421,9 @@ function renderAll() {
   $('shopname').textContent = ad.shop || 'المحل';
   var kind = venue ? 'صفحة صالة / كافتريا' : (ad.pageType === 'services' ? 'صفحة خدمات' : 'صفحة مبيعات');
   $('shopmeta').textContent = kind + (ad.phone ? ' · ' + ad.phone : '') + (ad.text ? ' · ' + ad.text : '');
+  var br = $('brand');
+  if (br) br.textContent = venue ? 'مصلاوي اون لاين — صفحة صالة' : (ad.pageType === 'services' ? 'مصلاوي اون لاين — صفحة خدمات' : 'مصلاوي اون لاين — صفحة المحل');
+  try { document.title = (ad.shop || 'المحل') + (venue ? ' — صالة' : ' — محل'); } catch (e) {}
   $('venue-tools').hidden = !venue;
   if (venue) {
     var n = Math.max(1, Math.min(200, Number(ad.tableCount) || 10));
@@ -472,14 +530,25 @@ function listenOrders(id) {
     }
     renderOrders();
   }
-  unsubOrders = db.collection('orders').where('adId', '==', id).orderBy('createdAt', 'desc').limit(40)
-    .onSnapshot(apply, function () {
-      unsubOrders = db.collection('orders').where('adId', '==', id).limit(40)
-        .onSnapshot(apply, function (e) {
-          var box = $('olist');
-          if (box) box.innerHTML = '<div class="empty">ما كدرت أقرأ الطلبات: ' + esc((e && e.message) || 'صلاحيات') + '</div>';
-        });
-    });
+  function startListen() {
+    unsubOrders = db.collection('orders').where('adId', '==', id).limit(40)
+      .onSnapshot(apply, function (e) {
+        var box = $('olist');
+        if (box) box.innerHTML = '<div class="empty">ما كدرت أقرأ الطلبات: ' + esc((e && e.message) || 'صلاحيات') +
+          '<br><span class="note">تأكد إنك دخلت بالكود الصحيح وأن الإنترنت شغال، ثم اخرج وادخل مرة ثانية.</span></div>';
+        // أعد المطالبة بالملكية وجرب مرة
+        ensureAuth().then(function (u) {
+          if (!u) return null;
+          return db.collection('ads').doc(id).update({ ownerUid: u.uid });
+        }).then(function () {
+          setTimeout(function () {
+            if (unsubOrders) { try { unsubOrders(); } catch (x) {} }
+            unsubOrders = db.collection('orders').where('adId', '==', id).limit(40).onSnapshot(apply, function () {});
+          }, 800);
+        }).catch(function () {});
+      });
+  }
+  startListen();
 }
 
 function openApp(id, data) {
@@ -492,18 +561,20 @@ function openApp(id, data) {
     ad = snap.data(); ad.id = id;
     renderAll();
   }, function (e) { $('lerr').textContent = e.message || 'خطأ'; });
-  // أولاً سجّل هالجهاز كمالك، وبعدين اسمع الطلبات (حتى ما تنرفض الصلاحية)
+  // سجّل هذا الجهاز كمالك (بعد دخول الكود) ثم اسمع الطلبات
   ensureAuth().then(function (u) {
-    if (!u) return null;
-    if (data.ownerUid && data.ownerUid !== u.uid) {
-      // مالك مسجّل من جهاز ثاني — نحاول نسمع على أي حال
-      return null;
-    }
-    return db.collection('ads').doc(id).update({ ownerUid: u.uid });
+    if (!u) throw new Error('ما كدرت أسجّل الدخول');
+    return db.collection('ads').doc(id).update({ ownerUid: u.uid }).then(function () {
+      ad.ownerUid = u.uid;
+      return u;
+    });
   }).then(function () {
     listenOrders(id);
-  }).catch(function () {
-    listenOrders(id);
+  }).catch(function (e) {
+    var list = $('olist');
+    if (list) list.innerHTML = '<div class="empty">ما كدرت أفعّل استقبال الطلبات: ' + esc((e && e.message) || 'صلاحيات') + '<br><span class="note">جرّب تخرج وتدخل بالكود مرة ثانية.</span></div>';
+    // حاول تسمع على أي حال بعد ثانية (لو الحفظ تأخر)
+    setTimeout(function () { listenOrders(id); }, 1200);
   });
   renderAll();
   renderOrders();
@@ -572,6 +643,7 @@ document.addEventListener('click', function (e) {
   if (!t) return;
   var a = t.dataset.act;
   if (a === 'tab') { showTab(t.dataset.tab); return; }
+  if (a === 'install') { installApp($('instmsg')); return; }
   if (a === 'snd') { toggleSound(); return; }
   if (a === 'logout') {
     try { localStorage.removeItem('chaychi-shop-code'); } catch (x) {}
