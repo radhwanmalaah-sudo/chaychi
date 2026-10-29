@@ -47,6 +47,28 @@ form.g { background: var(--surface); border: 1px solid var(--line); border-radiu
 .empty { text-align: center; color: var(--ink-2); padding: 20px; }
 .price { font-weight: 600; direction: ltr; unicode-bidi: isolate; }
 [hidden] { display: none !important; }
+.tabs {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 6px;
+  background: var(--surface-2); border-radius: 14px; padding: 4px; margin: 12px 0 14px;
+}
+.tabs button {
+  border: 0; background: transparent; border-radius: 12px; padding: 12px 8px;
+  font-weight: 600; color: var(--ink-2); font-size: 14px; cursor: pointer;
+}
+.tabs button[aria-selected="true"] {
+  background: var(--surface); color: var(--tea); box-shadow: 0 1px 2px rgba(0,0,0,.06);
+}
+.tabs .badge {
+  display: inline-block; min-width: 1.4em; padding: 0 6px; margin-inline-start: 4px;
+  border-radius: 999px; background: var(--tea); color: var(--tea-ink); font-size: 12px; line-height: 1.5;
+}
+.orders-panel {
+  background: var(--surface); border: 2px solid var(--tea); border-radius: 18px;
+  padding: 14px; margin-bottom: 8px; min-height: 120px;
+}
+.orders-panel h2 { margin-top: 0; color: var(--tea); }
+.orders-panel .olist { display: grid; gap: 10px; max-height: 55vh; overflow-y: auto; }
+
 </style>
 </head>
 <body>
@@ -74,52 +96,61 @@ form.g { background: var(--surface); border: 1px solid var(--line); border-radiu
       <p class="note" id="sndhint" hidden>اضغط أي مكان مرة حتى يتفعّل الصوت على الموبايل.</p>
     </div>
 
-    <div id="sales-tools">
-      <h2>عملة الأسعار</h2>
-      <div class="seg" id="curseg">
-        <button type="button" data-act="cur" data-v="iqd">دينار</button>
-        <button type="button" data-act="cur" data-v="usd">دولار</button>
-        <button type="button" data-act="cur" data-v="none">بلا سعر</button>
-      </div>
-      <p class="note" id="curnote"></p>
+    <div class="tabs" role="tablist">
+      <button type="button" role="tab" id="tab-orders" data-act="tab" data-tab="orders" aria-selected="true">الطلبات <span class="badge" id="tab-obadge" hidden>0</span></button>
+      <button type="button" role="tab" id="tab-settings" data-act="tab" data-tab="settings" aria-selected="false">إعدادات الصفحة</button>
     </div>
 
-    <div id="venue-tools" hidden>
-      <h2>عدد الطاولات</h2>
-      <div class="card">
-        <div class="row">
-          <span class="meta">الطاولات مرقّمة من ١ إلى العدد اللي تحدده</span>
-          <div style="display:inline-flex;align-items:center;border:1px solid var(--line);border-radius:10px;overflow:hidden">
-            <button type="button" data-act="tbl-dec" style="border:0;background:var(--surface-2);padding:6px 14px">−</button>
-            <output id="tbl-n" style="min-width:2.5em;text-align:center;font-weight:600">١٠</output>
-            <button type="button" data-act="tbl-inc" style="border:0;background:var(--surface-2);padding:6px 14px">+</button>
-          </div>
+    <div id="pane-orders" role="tabpanel">
+      <div class="orders-panel" id="orders-box">
+        <h2>طلبات واردة <span id="ocnt"></span></h2>
+        <p class="note" id="ord-note">مهم: اتصل بالزبون أولاً وتأكد من الطلب قبل القبول.</p>
+        <div class="olist" id="olist"></div>
+      </div>
+    </div>
+
+    <div id="pane-settings" role="tabpanel" hidden>
+      <div id="sales-tools">
+        <h2>عملة الأسعار</h2>
+        <div class="seg" id="curseg">
+          <button type="button" data-act="cur" data-v="iqd">دينار</button>
+          <button type="button" data-act="cur" data-v="usd">دولار</button>
+          <button type="button" data-act="cur" data-v="none">بلا سعر</button>
         </div>
-        <p class="note" id="venue-link-note" style="margin:8px 0 0"></p>
-        <div class="btns"><button class="btn-line" data-act="copy-venue" type="button">انسخ رابط الزبائن</button></div>
+        <p class="note" id="curnote"></p>
       </div>
+
+      <div id="venue-tools" hidden>
+        <h2>عدد الطاولات</h2>
+        <div class="card">
+          <div class="row">
+            <span class="meta">الطاولات مرقّمة من ١ إلى العدد اللي تحدده</span>
+            <div style="display:inline-flex;align-items:center;border:1px solid var(--line);border-radius:10px;overflow:hidden">
+              <button type="button" data-act="tbl-dec" style="border:0;background:var(--surface-2);padding:6px 14px">−</button>
+              <output id="tbl-n" style="min-width:2.5em;text-align:center;font-weight:600">١٠</output>
+              <button type="button" data-act="tbl-inc" style="border:0;background:var(--surface-2);padding:6px 14px">+</button>
+            </div>
+          </div>
+          <p class="note" id="venue-link-note" style="margin:8px 0 0"></p>
+          <div class="btns"><button class="btn-line" data-act="copy-venue" type="button">انسخ رابط الزبائن</button></div>
+        </div>
+      </div>
+
+      <h2 id="list-title">عروضك <span id="icnt"></span></h2>
+      <div id="ilist"></div>
+
+      <h2 id="form-title">أضف عنصر</h2>
+      <form class="g" id="f-item" novalidate>
+        <div><label class="f" for="iname" id="iname-lab">الاسم</label>
+          <input class="in" id="iname" maxlength="40" placeholder=""></div>
+        <div id="pricebox"><label class="f" for="iprice">السعر</label>
+          <input class="in" id="iprice" type="text" inputmode="numeric" maxlength="12" pattern="[0-9٠-٩.]*" placeholder="مثال: 120000"></div>
+        <div><label class="f" for="idesc">وصف مختصر (اختياري)</label>
+          <input class="in" id="idesc" maxlength="80" placeholder="جملة قصيرة"></div>
+        <p class="err" id="ierr" role="alert"></p>
+        <button class="btn" type="submit" id="f-item-btn">أضف</button>
+      </form>
     </div>
-
-    <div id="orders-box" hidden>
-      <h2>طلبات واردة <span id="ocnt"></span></h2>
-      <p class="note" id="ord-note">مهم: اتصل بالزبون أولاً وتأكد من الطلب قبل القبول — حتى ما يصير تلاعب أو طلب وهمي.</p>
-      <div id="olist"></div>
-    </div>
-
-    <h2 id="list-title">عروضك <span id="icnt"></span></h2>
-    <div id="ilist"></div>
-
-    <h2 id="form-title">أضف عنصر</h2>
-    <form class="g" id="f-item" novalidate>
-      <div><label class="f" for="iname" id="iname-lab">الاسم</label>
-        <input class="in" id="iname" maxlength="40" placeholder=""></div>
-      <div id="pricebox"><label class="f" for="iprice">السعر</label>
-        <input class="in" id="iprice" type="text" inputmode="numeric" maxlength="12" pattern="[0-9٠-٩.]*" placeholder="مثال: 120000"></div>
-      <div><label class="f" for="idesc">وصف مختصر (اختياري)</label>
-        <input class="in" id="idesc" maxlength="80" placeholder="جملة قصيرة"></div>
-      <p class="err" id="ierr" role="alert"></p>
-      <button class="btn" type="submit" id="f-item-btn">أضف</button>
-    </form>
   </section>
 </div>
 
@@ -257,6 +288,7 @@ function toggleSound() {
   soundOn = !soundOn;
   try { localStorage.setItem(SND_KEY, soundOn ? 'on' : 'off'); } catch (e) {}
   updateSndBtn();
+  try { showTab(localStorage.getItem('mousl-shop-tab') === 'settings' ? 'settings' : 'orders'); } catch (e) { showTab('orders'); }
   if (soundOn) {
     unlockAudio();
     playNewOrderSound();
@@ -310,7 +342,7 @@ function renderItems() {
   $('list-title').innerHTML = lab + '<span id="icnt">' + (items.length ? '(' + ar(items.length) + ')' : '') + '</span>';
   $('form-title').textContent = venue ? 'أضف صنف' : (sales ? 'أضف منتج' : 'أضف خدمة');
   $('iname-lab').textContent = venue ? 'اسم الصنف' : (sales ? 'اسم المنتج' : 'اسم الخدمة');
-  $('iname').placeholder = venue ? 'مثال: استكان چاي، شيشة، بركر' : (sales ? 'مثال: تليفون، طباعة، كيس رز' : 'مثال: تصميم مخططات، صيانة مكيفات');
+  $('iname').placeholder = venue ? 'مثال: شاي، شيشة، بركر' : (sales ? 'مثال: تليفون، طباعة، كيس رز' : 'مثال: تصميم مخططات، صيانة مكيفات');
   $('f-item-btn').textContent = venue ? 'أضف للقائمة' : (sales ? 'أضف المنتج' : 'أضف الخدمة');
   $('pricebox').hidden = !sales || (ad.currency || 'none') === 'none';
   if (!items.length) {
@@ -347,18 +379,29 @@ function renderAll() {
   renderOrders();
 }
 
+function showTab(name) {
+  var orders = name === 'orders';
+  $('pane-orders').hidden = !orders;
+  $('pane-settings').hidden = orders;
+  var to = $('tab-orders'), ts = $('tab-settings');
+  if (to) to.setAttribute('aria-selected', String(orders));
+  if (ts) ts.setAttribute('aria-selected', String(!orders));
+  try { localStorage.setItem('mousl-shop-tab', name); } catch (e) {}
+}
 function renderOrders() {
   var box = $('orders-box'), list = $('olist');
   if (!box || !list) return;
-  if (!isSales() && !isVenue()) { box.hidden = true; return; }
-  // sales + venue show orders
-  box.hidden = false;
   var note = $('ord-note');
   if (note) note.textContent = isVenue()
-    ? 'الطلبات حسب رقم الطاولة. الطلب يبقى مفتوح حتى تضغط إنهاء بعد الدفع أو الاستلام. الزبون يقدر يضيف طلبات إضافية لنفس الطاولة.'
+    ? 'الطلبات حسب رقم الطاولة. يبقى مفتوح حتى إنهاء بعد الدفع/الاستلام. الزبون يقدر يضيف على نفس الطاولة.'
     : 'مهم: اتصل بالزبون أولاً وتأكد من الطلب قبل القبول — حتى ما يصير تلاعب أو طلب وهمي.';
   var open = adOrders.filter(function (o) { return o.open !== false && o.status !== 'cancelled' && o.status !== 'rejected'; });
   $('ocnt').textContent = open.length ? '(' + ar(open.length) + ')' : '';
+  var badge = $('tab-obadge');
+  if (badge) {
+    if (open.length) { badge.hidden = false; badge.textContent = ar(open.length); }
+    else badge.hidden = true;
+  }
   if (!open.length) {
     list.innerHTML = '<div class="empty">ماكو طلبات حالياً.</div>';
     return;
@@ -425,7 +468,7 @@ function listenOrders(id) {
       firstOrdersLoad = false;
     } else if (incoming.length) {
       playNewOrderSound();
-      try { document.title = '🔔 طلب جديد — مصلاوي'; } catch (e) {}
+      try { showTab('orders'); document.title = '🔔 طلب جديد — مصلاوي'; } catch (e) {}
     }
     renderOrders();
   }
@@ -528,6 +571,7 @@ document.addEventListener('click', function (e) {
   var t = e.target.closest('[data-act]');
   if (!t) return;
   var a = t.dataset.act;
+  if (a === 'tab') { showTab(t.dataset.tab); return; }
   if (a === 'snd') { toggleSound(); return; }
   if (a === 'logout') {
     try { localStorage.removeItem('chaychi-shop-code'); } catch (x) {}
