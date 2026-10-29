@@ -108,8 +108,16 @@ form { background: var(--surface); border: 1px solid var(--line); border-radius:
 .in { width: 100%; background: var(--bg); border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; }
 .in[type="tel"] { direction: ltr; text-align: end; }
 textarea.in { resize: vertical; min-height: 64px; }
+#text { min-height: 120px; }
 .two { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
 .cnt { color: var(--ink-2); font-size: 12px; margin-top: 2px; }
+.labrow { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 4px; }
+.labrow label { margin: 0; }
+.btn-clear {
+  border: 1px solid var(--line); background: var(--surface-2); color: var(--ink-2);
+  border-radius: 999px; padding: 4px 12px; font-size: 12px; font-weight: 600; cursor: pointer;
+}
+.btn-clear:active { opacity: 0.85; }
 .err { color: var(--tea); font-size: 13px; margin: 0; min-height: 1.2em; }
 .preview-h { font-size: 12px; font-weight: 600; color: var(--ink-2); margin: 4px 0 0; }
 .pv { background: var(--bg); border: 1px solid var(--line); border-radius: 16px; padding: 12px 14px; display: grid; gap: 4px; }
@@ -180,7 +188,8 @@ textarea.in { resize: vertical; min-height: 64px; }
       </select>
       <p class="note" style="margin:6px 0 0;color:var(--ink-2);font-size:13px">مبيعات: منتجات. خدمات: تواصل فقط. صالة: طاولات مرقّمة وقائمة للزبون.</p>
     </div>
-    <div class="f"><label for="text">نص الإعلان</label><textarea class="in" id="text" maxlength="80" placeholder="جملة قصيرة تعرّف الزبون بالمحل"></textarea><div class="cnt" id="cnt">٠ / ٨٠</div></div>
+    <div class="f"><div class="labrow"><label for="text">نص الإعلان</label><button type="button" class="btn-clear" data-act="clear-text" id="btn-clear-text" title="مسح النص">مسح النص ✕</button></div>
+<textarea class="in" id="text" rows="6" placeholder="اكتب وصف المحل أو العرض بالتفصيل"></textarea><div class="cnt" id="cnt">٠ حرف</div></div>
     <div class="f"><label for="phone">رقم التواصل</label><input class="in" id="phone" type="tel" inputmode="tel" maxlength="14" placeholder="07701234567" autocomplete="off"></div>
     <div class="f"><label for="zone">المنطقة</label><select class="in" id="zone"></select></div>
     <div class="two">
@@ -487,7 +496,7 @@ function renderPreview() {
   var text = $('text').value.trim() || 'نص الإعلان يطلع هنا.';
   var phone = $('phone').value.trim() || '07xxxxxxxxx';
   $('pv').innerHTML = '<span class="tag">إعلان</span><div class="shop">' + esc(shop) + '</div><p>' + esc(text) + '</p><div class="ph">' + esc(phone) + '</div>';
-  $('cnt').textContent = ar($('text').value.length) + ' / ٨٠';
+  $('cnt').textContent = ar($('text').value.length) + ' حرف';
 }
 function renderAll() { renderStats(); renderList(); renderSellers(); renderReq(); renderZonesBox(); renderLate(); }
 var zconfirm = '';
@@ -704,7 +713,11 @@ document.addEventListener('click', function (e) {
   else if (a === 'rask') rconfirm = id;
   else if (a === 'rcancel') rconfirm = '';
   else if (a === 'reject') { db.collection('joinRequests').doc(id).update({ status: 'rejected' }).catch(fail); rconfirm = ''; }
-  else if (a === 'zask') zconfirm = id;
+  else if (a === 'clear-text') {
+    $('text').value = '';
+    try { $('text').focus(); } catch (e) {}
+    renderPreview();
+  } else if (a === 'zask') zconfirm = id;
   else if (a === 'zcancel') zconfirm = '';
   else if (a === 'zdel') {
     zconfirm = '';
