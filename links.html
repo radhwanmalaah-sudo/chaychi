@@ -1,0 +1,181 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#A6311A">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="مصلاوي">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<title>مصلاوي اون لاين — الروابط</title>
+<link rel="manifest" href="manifest-links.json">
+<link rel="apple-touch-icon" href="icon-192.png">
+<link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;600&family=Lalezar&display=swap">
+<style>
+:root {
+  --bg: #EEF1EE; --surface: #FFFFFF; --surface-2: #E3E9E5; --ink: #17201D; --ink-2: #52605B;
+  --line: #D1D9D4; --tea: #A6311A; --tea-ink: #FFFFFF; --ok: #0E6B5F;
+  --font-display: 'Lalezar', sans-serif; --font-body: 'IBM Plex Sans Arabic', sans-serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0F1514; --surface: #172120; --surface-2: #1F2C2A; --ink: #E7EEEB; --ink-2: #9DB0AA;
+    --line: #2A3A37; --tea: #E5755A; --tea-ink: #1A0A06; --ok: #5CD0C0; color-scheme: dark;
+  }
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0; background: var(--bg); color: var(--ink); font-family: var(--font-body); font-size: 15px; line-height: 1.55;
+  padding: 0 max(16px, env(safe-area-inset-right)) 40px max(16px, env(safe-area-inset-left));
+}
+.app { max-width: 440px; margin-inline: auto; }
+.brand {
+  font-family: var(--font-display); font-size: 34px; color: var(--tea); margin: 28px 0 4px; text-align: center;
+}
+.sub { text-align: center; color: var(--ink-2); font-size: 14px; margin: 0 0 18px; }
+h2 {
+  font-size: 12px; font-weight: 600; letter-spacing: 0.06em; color: var(--ink-2);
+  margin: 22px 0 10px; text-transform: none;
+}
+.card {
+  display: block; background: var(--surface); border: 1px solid var(--line); border-radius: 18px;
+  padding: 16px 16px; margin-bottom: 10px; text-decoration: none; color: inherit;
+  transition: border-color .15s, transform .12s;
+}
+.card:active { transform: scale(0.98); }
+.card:hover { border-color: var(--tea); }
+.card .t { font-family: var(--font-display); font-size: 22px; line-height: 1.25; color: var(--tea); }
+.card .d { color: var(--ink-2); font-size: 13px; margin-top: 4px; }
+.card .who {
+  display: inline-block; margin-top: 8px; font-size: 11px; font-weight: 600;
+  background: var(--surface-2); color: var(--ink-2); border-radius: 999px; padding: 2px 10px;
+}
+.card.main {
+  border: 2px solid var(--tea); background: linear-gradient(160deg, var(--surface) 60%, color-mix(in srgb, var(--tea) 12%, var(--surface)));
+}
+.card.main .t { font-size: 26px; }
+.install-box {
+  background: var(--surface); border: 1px solid var(--line); border-radius: 18px;
+  padding: 14px 16px; margin-bottom: 8px; text-align: center;
+}
+.install-box p { margin: 0 0 10px; color: var(--ink-2); font-size: 13px; }
+.btn-install {
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  width: 100%; border: 0; border-radius: 14px; padding: 12px 16px;
+  background: var(--tea); color: var(--tea-ink); font-family: inherit; font-size: 15px; font-weight: 600;
+  cursor: pointer;
+}
+.btn-install:active { opacity: 0.9; }
+.btn-install[hidden] { display: none; }
+.inst-msg { margin: 8px 0 0; font-size: 12px; color: var(--ink-2); min-height: 1.2em; }
+.note { color: var(--ink-2); font-size: 12px; text-align: center; margin-top: 24px; }
+code {
+  direction: ltr; unicode-bidi: isolate; font-size: 11px; background: var(--surface-2);
+  padding: 1px 6px; border-radius: 6px;
+}
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="brand">مصلاوي اون لاين</div>
+  <p class="sub">اختر الصفحة اللي تريدها</p>
+
+  <div class="install-box" id="install-box">
+    <p>ثبّت التطبيق على شاشة الموبايل لفتح أسرع</p>
+    <button type="button" class="btn-install" id="btn-install">تثبيت على الشاشة الرئيسية</button>
+    <p class="inst-msg" id="inst-msg"></p>
+  </div>
+
+  <h2>للزبائن</h2>
+  <a class="card main" href="./">
+    <div class="t">تطبيق الزبون</div>
+    <div class="d">طلب من البائعين، مشاهدة الإعلانات، وتتبع الطلب</div>
+    <span class="who">الزبون</span>
+  </a>
+  <a class="card" href="./venue.html">
+    <div class="t">قائمة الصالة</div>
+    <div class="d">طلب من طاولة — يحتاج كود الصالة بالرابط <code>?c=</code></div>
+    <span class="who">زبون الصالة</span>
+  </a>
+
+  <h2>للبائعين والمحلات</h2>
+  <a class="card" href="./seller.html">
+    <div class="t">تطبيق البائع</div>
+    <div class="d">استقبال طلبات التوصيل، القائمة، والمتاح / مشغول — بكود الدخول</div>
+    <span class="who">بائع / چايچي</span>
+  </a>
+  <a class="card" href="./shop.html">
+    <div class="t">إدارة المحل أو الصالة</div>
+    <div class="d">إضافة منتجات، طاولات، واستقبال الطلبات — بكود الدخول</div>
+    <span class="who">صاحب محل / صالة</span>
+  </a>
+
+  <h2>للإدارة</h2>
+  <a class="card" href="./panel.html">
+    <div class="t">لوحة التحكم</div>
+    <div class="d">الإعلانات، البائعين، المناطق، والإعدادات — بحساب كوكل</div>
+    <span class="who">صاحب التطبيق</span>
+  </a>
+
+  <p class="note">مصلاوي اون لاين · الموصل</p>
+</div>
+<script>
+(function () {
+  var deferred = null;
+  var btn = document.getElementById('btn-install');
+  var msg = document.getElementById('inst-msg');
+  var box = document.getElementById('install-box');
+
+  function isStandalone() {
+    try {
+      return window.matchMedia('(display-mode: standalone)').matches
+        || window.navigator.standalone === true;
+    } catch (e) { return false; }
+  }
+
+  if (isStandalone()) {
+    if (box) box.hidden = true;
+    return;
+  }
+
+  window.addEventListener('beforeinstallprompt', function (e) {
+    e.preventDefault();
+    deferred = e;
+    if (msg) msg.textContent = 'اضغط الزر لتثبيت التطبيق.';
+  });
+
+  window.addEventListener('appinstalled', function () {
+    deferred = null;
+    if (msg) msg.textContent = 'تم التثبيت. افتحه من الشاشة الرئيسية.';
+    if (btn) btn.hidden = true;
+  });
+
+  if (btn) btn.addEventListener('click', function () {
+    if (deferred) {
+      deferred.prompt();
+      deferred.userChoice.then(function () { deferred = null; }).catch(function () {});
+      return;
+    }
+    var ua = navigator.userAgent || '';
+    var ios = /iphone|ipad|ipod/i.test(ua);
+    var android = /android/i.test(ua);
+    if (ios) {
+      msg.textContent = 'من Safari: زر المشاركة ← «إضافة إلى الشاشة الرئيسية».';
+    } else if (android) {
+      msg.textContent = 'من قائمة كروم (⋮) اختر «تثبيت التطبيق» أو «إضافة إلى الشاشة الرئيسية».';
+    } else {
+      msg.textContent = 'من قائمة المتصفح اختر «تثبيت» أو «إضافة إلى الشاشة الرئيسية».';
+    }
+  });
+
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', function () {
+      navigator.serviceWorker.register('sw.js').catch(function () {});
+    });
+  }
+})();
+</script>
+</body>
+</html>
