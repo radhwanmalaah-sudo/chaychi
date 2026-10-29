@@ -291,12 +291,8 @@ h2 .n { background: var(--tea); color: var(--tea-ink); border-radius: 999px; min
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
 <script>
 var FBCONFIG = { apiKey: 'AIzaSyDT27G2lUpfUPcAMvRIPkllY3bzbQv87Eg', authDomain: 'chaychi-61eaf.firebaseapp.com', projectId: 'chaychi-61eaf', storageBucket: 'chaychi-61eaf.firebasestorage.app', messagingSenderId: '669532553284', appId: '1:669532553284:web:b999af1fc4824c7affbc11' };
-var ZONES_DEFAULT = [
-  { id: 'zuhoor', name: 'حي الزهور' },
-  { id: 'jamia', name: 'حي الجامعة' },
-  { id: 'dawasa', name: 'الدواسة' }
-];
-var ZONES = ZONES_DEFAULT.slice();
+var ZONES_DEFAULT = []; /* ما نثبت مناطق افتراضية — تضيفها من اللوحة */
+var ZONES = [];
 var DRINKS = [];
 var HB_FRESH = 240000; /* a seller counts as available if his heartbeat is newer than 4 minutes */
 var fbOK = false, auth = null, db = null, FV = null, myUid = null;
@@ -338,7 +334,33 @@ function errText(e) {
 }
 function esc(t) { return String(t).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
 function $(id) { return document.getElementById(id); }
-function ar(n) { return String(n).replace(/\d/g, function (d) { return '٠١٢٣٤٥٦٧٨٩'[d]; }); }
+function ar(n) {
+  if (n == null || n === '') return '';
+  var num = Number(n);
+  if (!isNaN(num) && isFinite(num)) {
+    // أزل أخطاء الفاصلة العائمة (مثل 999.999999 → 1000)
+    if (Math.abs(num - Math.round(num)) < 1e-9) num = Math.round(num);
+    else num = Math.round(num * 100) / 100;
+    n = String(num);
+  } else {
+    n = String(n);
+  }
+  return n.replace(/\d/g, function (d) { return '٠١٢٣٤٥٦٧٨٩'[d]; });
+}
+function westernDigits(s) {
+  return String(s || '').replace(/[٠-٩]/g, function (d) {
+    return String('٠١٢٣٤٥٦٧٨٩'.indexOf(d));
+  }).replace(/[٬،\s,]/g, '');
+}
+function parsePrice(s) {
+  var w = westernDigits(s).replace(/[^\d.]/g, '');
+  if (!w || w === '.') return NaN;
+  var n = Number(w);
+  if (!isFinite(n) || isNaN(n)) return NaN;
+  // دينار: خليه عدد صحيح؛ دولار: خليه مرتبتين
+  if (Math.abs(n - Math.round(n)) < 1e-9) return Math.round(n);
+  return Math.round(n * 100) / 100;
+}
 function money(n) { return ar(String(n).replace(/\B(?=(\d{3})+(?!\d))/g, ',')).replace(/,/g, '٬') + ' د.ع'; }
 function dist(m) { return m < 1000 ? ar(m) + ' م' : ar((m / 1000).toFixed(1)).replace('.', '٫') + ' كم'; }
 function glass(cls) { return '<svg class="' + (cls || 'ico') + '"><use href="#i-glass"/></svg>'; }
@@ -347,9 +369,7 @@ function zoneName(id) { var z = ZONES.filter(function (x) { return x.id === id; 
 /* zones live in the database so the owner can add them from the panel; the defaults show until the first load */
 function watchZones(cb) {
   return db.collection('zones').onSnapshot(function (s) {
-    if (!s.empty) {
-      ZONES = s.docs.map(function (d) { var x = d.data(); return { id: d.id, name: x.name, o: x.o || 0 }; }).sort(function (a, b) { return a.o - b.o || (a.name < b.name ? -1 : 1); });
-    }
+    ZONES = s.docs.map(function (d) { var x = d.data(); return { id: d.id, name: x.name, o: x.o || 0 }; }).sort(function (a, b) { return a.o - b.o || (a.name < b.name ? -1 : 1); });
     cb(s);
   }, function () { cb(null); });
 }
