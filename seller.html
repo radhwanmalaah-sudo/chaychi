@@ -259,7 +259,7 @@ h2 .n { background: var(--tea); color: var(--tea-ink); border-radius: 999px; min
   <div class="gate" id="gate" hidden>
     <div class="gate-in">
       <div class="brand"><svg class="ico"><use href="#i-glass"/></svg><span>مصلاوي اون لاين</span></div>
-      <p class="gnote">تطبيق الچايچية. الطلبات توصلك هنا وتقبلها بضغطة.</p>
+      <p class="gnote">تطبيق البائع. الطلبات توصلك هنا وتقبلها بضغطة.</p>
       <div class="seg" role="group" aria-label="الدخول">
         <button id="g-in" data-act="g-in" aria-pressed="true">دخول</button>
         <button id="g-join" data-act="g-join" aria-pressed="false">طلب انضمام</button>
@@ -852,9 +852,9 @@ function renderShare() {
     var q = qrcode(0, 'M'); q.addData(CUSTOMER_LINK); q.make();
     qr = q.createSvgTag({ cellSize: 4, margin: 2, scalable: true });
   } catch (e) { qr = ''; }
-  var msg = 'أهلاً، أني ' + prof.name + ' چايچي بـ' + zoneName(prof.zone) + '. اطلب الچاي لحد مكانك من تطبيق مصلاوي اون لاين: ' + CUSTOMER_LINK;
+  var msg = 'أهلاً، أني ' + prof.name + ' بائع بـ' + zoneName(prof.zone) + '. اطلب مني من تطبيق مصلاوي اون لاين: ' + CUSTOMER_LINK;
   $('v-share').innerHTML =
-    '<div class="shr"><h3>خلّي زبائنك يطلبون منك</h3><p>الزبون يمسح الكود أو يفتح الرابط، وبعدين يشوفك بقائمة الچايچية بمنطقتك.</p>' +
+    '<div class="shr"><h3>خلّي زبائنك يطلبون منك</h3><p>الزبون يمسح الكود أو يفتح الرابط، وبعدين يشوفك بقائمة البائعين بمنطقتك.</p>' +
     (qr ? '<div class="qrbox" role="img" aria-label="QR كود تطبيق الزبون">' + qr + '</div>' : '<p>تعذر رسم الكود، استخدم الرابط تحت.</p>') +
     '<ul class="tips"><li>ألصق الكود على صينيتك أو عربتك بمكان واضح.</li><li>صوّر الشاشة واطبع الكود حتى يكون كبير.</li><li>قل لزبائنك المعتادين يطلبون منك من التطبيق.</li></ul></div>' +
     '<div class="shr"><h3>رابط التطبيق</h3><div class="linkrow"><div class="lk" id="lk"></div><button class="sm" data-act="copy" data-src="lk">انسخ</button></div></div>' +

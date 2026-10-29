@@ -157,7 +157,7 @@ textarea.in { resize: vertical; min-height: 64px; }
 
   <nav class="ptabs" aria-label="الأقسام">
     <button data-act="tab" data-tab="ads" aria-pressed="true">الإعلانات</button>
-    <button data-act="tab" data-tab="sellers" aria-pressed="false">الچايچية</button>
+    <button data-act="tab" data-tab="sellers" aria-pressed="false">البائعون</button>
     <button data-act="tab" data-tab="req" aria-pressed="false">الانضمام<span class="bd" id="bd" hidden></span></button>
     <button data-act="tab" data-tab="late" aria-pressed="false">ما دفعوا<span class="bd" id="lbd" hidden></span></button>
     <button data-act="tab" data-tab="set" aria-pressed="false">الإعدادات</button>
@@ -196,9 +196,9 @@ textarea.in { resize: vertical; min-height: 64px; }
 
   <div id="v-sellers" hidden>
     <div id="invite-slot"></div>
-    <h2>الچايچية</h2>
+    <h2>البائعون</h2>
     <div class="cards" id="slist"></div>
-    <h2>أضف چايچي</h2>
+    <h2>أضف بائع</h2>
     <form id="sform" novalidate>
       <div class="f"><label for="s-name">الاسم</label><input class="in" id="s-name" maxlength="30" placeholder="مثال: أبو أحمد" autocomplete="off"></div>
       <div class="f"><label for="s-phone">رقم جواله</label><input class="in" id="s-phone" type="tel" inputmode="tel" maxlength="14" placeholder="07701234567" autocomplete="off"></div>
@@ -226,7 +226,7 @@ textarea.in { resize: vertical; min-height: 64px; }
 
   <div id="v-set" hidden>
     <h2>لون التطبيق</h2>
-    <p class="note" style="margin-top:0">اللون يطلع عند الزبائن والچايچية (الأزرار والعناوين). غيّره وقت ما تحب.</p>
+    <p class="note" style="margin-top:0">اللون يطلع عند الزبائن والبائعين (الأزرار والعناوين). غيّره وقت ما تحب.</p>
     <div id="swatches" style="display:flex;flex-wrap:wrap"></div>
     <div class="f"><label for="colorin">أو اختار لون من عندك</label><input id="colorin" type="color" value="#A6311A" style="width:100%;height:44px;border:1px solid var(--line);border-radius:12px;background:var(--bg)"></div>
     <form id="setform" novalidate style="margin-top:14px">
@@ -241,7 +241,7 @@ textarea.in { resize: vertical; min-height: 64px; }
   <div id="v-req" hidden>
     <h2>طلبات الانضمام</h2>
     <div class="cards" id="rlist"></div>
-    <p class="note">الچايچي ما يظهر للزبائن إلا بعد ما توافق على طلبه.</p>
+    <p class="note">البائع ما يظهر للزبائن إلا بعد ما توافق على طلبه.</p>
     <p class="note" style="text-align:center"><button class="btn-line" data-act="logout">خروج</button></p>
   </div>
 </div>
@@ -584,7 +584,7 @@ $('form').addEventListener('submit', function (e) {
 
 /* ---------- sellers and join requests ---------- */
 function inviteText(x) {
-  return 'أهلاً ' + x.name + '، حمّل تطبيق مصلاوي اون لاين للچايچية من هذا الرابط: ' + SELLER_LINK + ' وادخل بالكود ' + x.code + '. افتحه من Chrome واختار "إضافة إلى الشاشة الرئيسية".';
+  return 'أهلاً ' + x.name + '، حمّل تطبيق مصلاوي اون لاين للبائعين من هذا الرابط: ' + SELLER_LINK + ' وادخل بالكود ' + x.code + '. افتحه من Chrome واختار "إضافة إلى الشاشة الرئيسية".';
 }
 function showCode(c) { return c ? c.slice(0, 4) + '-' + c.slice(4) : ''; }
 function copyText(srcId, btn) {
@@ -637,7 +637,7 @@ function renderSellers() {
     $('invtxt').value = inviteText(invite);
   } else { slot.innerHTML = ''; }
   var rows = sellers.map(sellerView);
-  if (!rows.length) { $('slist').innerHTML = '<div class="empty"><strong>ماكو چايچية</strong><p>أضف أول واحد من الفورم تحت.</p></div>'; return; }
+  if (!rows.length) { $('slist').innerHTML = '<div class="empty"><strong>ماكو بائعين</strong><p>أضف أول واحد من الفورم تحت.</p></div>'; return; }
   $('slist').innerHTML = rows.map(function (x) {
     return '<div class="card' + (x.on ? '' : ' dim') + '"><div class="row"><div><div class="shop">' + esc(x.name) + '</div>' +
       '<div class="meta"><span>' + esc(zoneName(x.zone)) + '</span><span class="ltr">' + esc(x.phone) + '</span></div></div>' +
@@ -670,7 +670,7 @@ $('sform').addEventListener('submit', function (e) {
   e.preventDefault();
   var name = $('s-name').value.trim(), phone = $('s-phone').value.trim().replace(/[\s-]/g, '');
   var err = '';
-  if (!name) err = 'اكتب اسم الچايچي.';
+  if (!name) err = 'اكتب اسم البائع.';
   else if (!/^\+?\d{9,14}$/.test(phone)) err = 'الرقم لازم يكون أرقام فقط، مثال 07701234567.';
   $('s-err').textContent = err;
   if (err) return;
@@ -757,7 +757,7 @@ function renderLate() {
       '<span class="pill ' + (isB ? 'off' : 'busy') + '">' + (isB ? 'محظور' : 'ما دفع') + '</span></div>' +
       g.orders.map(function (o) { return '<div class="meta" style="justify-content:space-between"><span>' + esc(o.sellerName || '') + ' · ' + fdate(o.createdAt) + ' · ' + money(o.total) + '</span><button class="btn-line" data-act="lpaid" data-id="' + o.id + '">دفع</button></div>'; }).join('') +
       '<div class="btns">' + (isB ? '<button class="btn-line" data-act="gunblock" data-id="' + esc(g.key) + '">ارفع الحظر</button>' : '<button class="btn-line danger" data-act="gblock" data-id="' + esc(g.key) + '">احظره</button>') + '</div></div>';
-  }).join('') : '<div class="empty"><strong>ماكو زبائن ما دفعوا</strong><p>لما الچايچي يضغط "ما لقيت الزبون" يطلع الزبون هنا.</p></div>';
+  }).join('') : '<div class="empty"><strong>ماكو زبائن ما دفعوا</strong><p>لما البائع يضغط "ما لقيت الزبون" يطلع الزبون هنا.</p></div>';
   var bl = Object.keys(blocked);
   $('blocklist').innerHTML = bl.length ? bl.map(function (id) {
     return '<div class="card"><div class="row"><div class="shop" style="direction:ltr;text-align:start;font-size:18px">' + esc(id.length > 16 ? 'جهاز ' + id.slice(0, 6) : id) + '</div><button class="btn-line" data-act="unb" data-id="' + esc(id) + '">ارفع</button></div></div>';
@@ -790,7 +790,7 @@ $('setform').addEventListener('submit', function (e) {
   $('set-err').textContent = err; if (err) return;
   var data = { bannerText: $('btext').value.trim(), bannerPhone: ph ? normPhone(ph) : '' };
   if (pickedColor) data.color = pickedColor;
-  db.collection('config').doc('app').set(data, { merge: true }).then(function () { $('set-err').textContent = 'انحفظ. يطلع عند الزبائن والچايچية خلال لحظات.'; }, fail);
+  db.collection('config').doc('app').set(data, { merge: true }).then(function () { $('set-err').textContent = 'انحفظ. يطلع عند الزبائن والبائعين خلال لحظات.'; }, fail);
 });
 
 /* ---------- login (Google) and live data ---------- */

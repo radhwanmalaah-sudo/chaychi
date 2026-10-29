@@ -943,7 +943,7 @@ function renderOrders() {
   else if (st === 1) { head = name + ' قبل طلبك'; sub = 'جاي يجهز طلبك.'; }
   else if (st === 2) { head = 'بالطريق إلك'; sub = 'البائع طلع لحد مكانك.'; }
   else if (st === 3) {
-    head = 'وصل چايك';
+    head = 'وصل طلبك';
     if (!later) sub = 'بالهنا والشفا. ' + (o.status === 'paid' ? 'تم الدفع، شكراً.' : 'ادفع للبائع ' + money(o.total) + ' نقداً.');
     else if (o.collectCalled) { head = 'البائع جاي يستلم المبلغ'; sub = 'جهّز المبلغ ' + money(o.total) + '.'; }
     else sub = 'بالهنا والشفا. لما تخلص نادِ البائع حتى يستلم المبلغ ' + money(o.total) + '.';
