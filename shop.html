@@ -77,6 +77,16 @@ form.g { background: var(--surface); border: 1px solid var(--line); border-radiu
 .orders-panel .olist { display: grid; gap: 10px; max-height: 55vh; overflow-y: auto; }
 .instbox { margin-top: 10px; text-align: center; }
 .instbox .hint { margin: 6px 0 0; font-size: 12px; color: var(--ink-2); min-height: 1.2em; }
+.qr-wrap { display: flex; justify-content: center; padding: 12px 0; }
+.qr-wrap img, .qr-svg svg, .qr-svg img { width: 200px; height: 200px; border-radius: 12px; background: #fff; padding: 8px; }
+.qr-svg { display: flex; justify-content: center; }
+.qr-card .qr-svg svg, .qr-card .qr-svg img { width: 120px; height: 120px; padding: 4px; }
+.qr-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 10px; margin-bottom: 16px; }
+.qr-card { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 10px; text-align: center; }
+.qr-card img { width: 120px; height: 120px; border-radius: 8px; background: #fff; padding: 4px; }
+.qr-card .tn { font-weight: 600; margin-top: 6px; font-size: 14px; }
+.qr-card .btns { justify-content: center; margin-top: 6px; }
+.qr-card .btn-line { padding: 4px 10px; font-size: 12px; }
 
 </style>
 </head>
@@ -147,6 +157,20 @@ form.g { background: var(--surface); border: 1px solid var(--line); border-radiu
           <p class="note" id="venue-link-note" style="margin:8px 0 0"></p>
           <div class="btns"><button class="btn-line" data-act="copy-venue" type="button">انسخ رابط الزبائن</button></div>
         </div>
+
+        <h2>رمز QR للزبائن</h2>
+        <div class="card" id="qr-main-card">
+          <p class="meta">امسح هذا الرمز → يفتح قائمة الصالة (الزبون يختار الطاولة)</p>
+          <div class="qr-wrap" id="qr-main"></div>
+          <div class="btns" style="margin-top:8px">
+            <button class="btn-line" type="button" data-act="copy-venue">انسخ الرابط</button>
+            <button class="btn-line" type="button" data-act="share-venue">مشاركة</button>
+          </div>
+        </div>
+
+        <h2>QR لكل طاولة</h2>
+        <p class="note">اطبع والصق على كل طاولة — الزبون يمسح ويفتح القائمة على رقم طاولته مباشرة.</p>
+        <div id="qr-tables" class="qr-grid"></div>
       </div>
 
       <h2 id="list-title">عروضك <span id="icnt"></span></h2>
@@ -170,6 +194,7 @@ form.g { background: var(--surface); border: 1px solid var(--line); border-radiu
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
+<script src="qrcode.min.js"></script>
 <script>
 var FBCONFIG = { apiKey: 'AIzaSyDT27G2lUpfUPcAMvRIPkllY3bzbQv87Eg', authDomain: 'chaychi-61eaf.firebaseapp.com', projectId: 'chaychi-61eaf', storageBucket: 'chaychi-61eaf.firebasestorage.app', messagingSenderId: '669532553284', appId: '1:669532553284:web:b999af1fc4824c7affbc11' };
 var auth, db, fbOK = false;
@@ -431,10 +456,51 @@ function renderAll() {
     var vlink = 'https://radhwanmalaah-sudo.github.io/mousl-online/venue.html?c=' + encodeURIComponent(ad.ownerCode || '');
     $('venue-link-note').innerHTML = 'رابط الزبائن: <span dir="ltr" style="word-break:break-all">' + esc(vlink) + '</span>';
     window._venueLink = vlink;
+    renderVenueQR();
   }
   renderCur();
   renderItems();
   renderOrders();
+}
+
+
+function makeQRSvg(text, cellSize) {
+  cellSize = cellSize || 4;
+  try {
+    if (typeof qrcode !== 'function') return '';
+    var qr = qrcode(0, 'M');
+    qr.addData(text);
+    qr.make();
+    // createSvgTag(cellSize, margin)
+    if (qr.createSvgTag) return qr.createSvgTag(cellSize, 2);
+    // fallback table → not ideal; use img from data via canvas-like path
+    return qr.createImgTag(cellSize, 4);
+  } catch (e) { return ''; }
+}
+function renderVenueQR() {
+  if (!isVenue() || !ad) return;
+  var base = window._venueLink || '';
+  var main = $('qr-main');
+  if (main && base) {
+    var tag = makeQRSvg(base, 5);
+    main.innerHTML = tag
+      ? '<div class="qr-svg" aria-label="QR الصالة">' + tag + '</div>'
+      : '<p class="note">ما كدرت أولّد الرمز. حدّث الصفحة.</p>';
+  }
+  var box = $('qr-tables');
+  if (!box) return;
+  var n = Math.max(1, Math.min(200, Number(ad.tableCount) || 10));
+  var html = '';
+  for (var i = 1; i <= n; i++) {
+    var link = base + (base.indexOf('?') >= 0 ? '&' : '?') + 't=' + i;
+    var q = makeQRSvg(link, 3);
+    html += '<div class="qr-card">' +
+      (q ? '<div class="qr-svg">' + q + '</div>' : '') +
+      '<div class="tn">طاولة ' + ar(i) + '</div>' +
+      '<div class="btns"><button type="button" class="btn-line" data-act="copy-tbl" data-t="' + i + '">نسخ</button></div>' +
+      '</div>';
+  }
+  box.innerHTML = html;
 }
 
 function showTab(name) {
@@ -667,13 +733,38 @@ document.addEventListener('click', function (e) {
     var n = Math.max(1, Math.min(200, Number(ad.tableCount) || 10));
     n = a === 'tbl-inc' ? n + 1 : n - 1;
     n = Math.max(1, Math.min(200, n));
+    ad.tableCount = n;
+    $('tbl-n').textContent = ar(n);
+    renderVenueQR();
     db.collection('ads').doc(adId).update({ tableCount: n }).catch(function () {});
   } else if (a === 'copy-venue') {
     var link = window._venueLink || '';
     if (!link) return;
     try {
-      navigator.clipboard.writeText(link).then(function () { t.textContent = 'تم النسخ'; setTimeout(function () { t.textContent = 'انسخ رابط الزبائن'; }, 1500); });
+      navigator.clipboard.writeText(link).then(function () {
+        t.textContent = 'تم النسخ';
+        setTimeout(function () { t.textContent = t.getAttribute('data-label') || 'انسخ رابط الزبائن'; }, 1500);
+      });
     } catch (e) { prompt('انسخ الرابط:', link); }
+  } else if (a === 'share-venue') {
+    var link2 = window._venueLink || '';
+    if (!link2) return;
+    if (navigator.share) {
+      navigator.share({ title: (ad && ad.shop) || 'الصالة', text: 'افتح قائمة الصالة واطلب من طاولتك', url: link2 }).catch(function () {});
+    } else {
+      try { navigator.clipboard.writeText(link2); t.textContent = 'تم نسخ الرابط'; } catch (e) { prompt('الرابط:', link2); }
+    }
+  } else if (a === 'copy-tbl') {
+    var ti = Number(t.dataset.t) || 0;
+    var base = window._venueLink || '';
+    if (!ti || !base) return;
+    var tl = base + (base.indexOf('?') >= 0 ? '&' : '?') + 't=' + ti;
+    try {
+      navigator.clipboard.writeText(tl).then(function () {
+        t.textContent = 'تم';
+        setTimeout(function () { t.textContent = 'نسخ'; }, 1200);
+      });
+    } catch (e) { prompt('رابط الطاولة ' + ti + ':', tl); }
   }
 });
 
