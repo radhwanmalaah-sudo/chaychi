@@ -118,6 +118,8 @@ h2 { font-size: 13px; font-weight: 600; letter-spacing: 0.04em; color: var(--ink
 /* ads */
 .adc { margin-top: 18px; width: 100%; text-align: start; background: var(--surface); border: 1px solid var(--line); border-radius: 16px; padding: 12px 14px; display: grid; gap: 4px; }
 .adc .top2 { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.ad-share{border:1px solid var(--line);background:var(--surface-2);color:var(--ink-2);border-radius:999px;padding:4px 12px;font-size:12px;font-weight:600;cursor:pointer;flex:none}
+.ad-share:active{opacity:.85}
 .adc .tag { font-size: 11px; font-weight: 600; color: var(--ink-2); border: 1px solid var(--line); border-radius: 6px; padding: 0 6px; }
 .adc .shop { font-family: var(--font-display); font-size: 22px; line-height: 1.3; color: var(--tea); }
 .adc .txt { margin: 0; }
@@ -551,6 +553,10 @@ var zoneId = 'all'; /* default: all zones, nearest first. The customer can pick 
 try { var savedZone = localStorage.getItem('chaychi-zone2'); if (savedZone) zoneId = savedZone; } catch (e) {}
 
 var sellers = [], ads = [], myLoc = null, adOpenId = '', adSeen = {}, adClicked = {};
+var pendingAdId = '';
+try {
+  pendingAdId = new URLSearchParams(location.search).get('ad') || '';
+} catch (e) {}
 var blockedSelf = false, cart = {}, pick = null, order = null, orderId = null, lastStage = null;
 var unsubSellers = null, unsubAds = null, unsubOrder = null, loaded = false;
 try { orderId = localStorage.getItem('chaychi-order') || null; } catch (e) {}
@@ -653,8 +659,11 @@ function renderAd() {
       ? (ar(nItems) + (sales ? ' منتج · ' : ' خدمة · ') + 'اضغط للتفاصيل')
       : 'اضغط للتفاصيل والاتصال';
     return '<div class="adc" aria-expanded="' + open + '">' +
+      '<div class="top2">' +
+      '<span class="tag">' + tag + '</span>' +
+      '<button type="button" class="ad-share" data-act="ad-share" data-id="' + esc(a.id) + '" title="مشاركة الإعلان">مشاركة ↗</button>' +
+      '</div>' +
       '<div data-act="ad" data-id="' + esc(a.id) + '" role="button" tabindex="0" style="cursor:pointer">' +
-      '<div class="top2"><span class="tag">' + tag + '</span></div>' +
       '<div class="shop">' + esc(a.shop) + '</div><p class="txt">' + esc(a.text) + '</p>' +
       (open ? '' : '<div class="hintx">' + hint + '</div>') +
       '</div>' +
@@ -677,6 +686,32 @@ function renderAd() {
       }
       if ($('ad-loc') && keepLoc) $('ad-loc').value = keepLoc;
     } catch (e) {}
+  }
+}
+
+function adShareUrl(id) {
+  var root = location.origin + location.pathname;
+  // إذا كنا بصفحة فرعية، رجّع لجذر التطبيق
+  root = root.replace(/\/(panel|seller|shop|venue|links)\.html$/i, '/');
+  if (!/\.html?$/i.test(root) && root.slice(-1) !== '/') root += '/';
+  var sep = root.indexOf('?') >= 0 ? '&' : '?';
+  return root.split('?')[0] + '?ad=' + encodeURIComponent(id);
+}
+function shareAd(id) {
+  var a = ads.filter(function (x) { return x.id === id; })[0];
+  var url = adShareUrl(id);
+  var title = (a && a.shop) ? a.shop : 'إعلان على مصلاوي اون لاين';
+  var text = (a && a.text) ? (a.shop + ' — ' + a.text) : title;
+  if (navigator.share) {
+    navigator.share({ title: title, text: text, url: url }).catch(function () {});
+    return;
+  }
+  try {
+    navigator.clipboard.writeText(url).then(function () {
+      alert('تم نسخ رابط الإعلان. الصقه بأي تطبيق.');
+    }).catch(function () { prompt('انسخ رابط الإعلان:', url); });
+  } catch (e) {
+    prompt('انسخ رابط الإعلان:', url);
   }
 }
 function openAd(id) {
@@ -768,7 +803,7 @@ function renderList() {
 function listenZone() {
   if (unsubSellers) unsubSellers();
   if (unsubAds) unsubAds();
-  sellers = []; ads = []; loaded = false; adOpenId = '';
+  sellers = []; ads = []; loaded = false; if (!pendingAdId) adOpenId = '';
   renderList();
   unsubSellers = (zoneId === 'all' ? db.collection('sellers') : db.collection('sellers').where('zone', '==', zoneId)).onSnapshot(function (snap) {
     sellers = snap.docs.map(function (d) { var x = d.data(); x.id = d.id; return x; });
@@ -777,6 +812,35 @@ function listenZone() {
   }, function (e) { loaded = true; showErr(errText(e)); renderList(); });
   unsubAds = (zoneId === 'all' ? db.collection('ads') : db.collection('ads').where('zones', 'array-contains', zoneId)).onSnapshot(function (snap) {
     ads = snap.docs.map(function (d) { var x = d.data(); x.id = d.id; return x; });
+    if (pendingAdId) {
+      if (ads.some(function (x) { return x.id === pendingAdId; })) {
+        adOpenId = pendingAdId;
+        pendingAdId = '';
+        try {
+          var u = new URL(location.href);
+          u.searchParams.delete('ad');
+          history.replaceState(null, '', u.pathname + (u.search || '') + u.hash);
+        } catch (e) {}
+      } else if (zoneId !== 'all') {
+        // الإعلان بمنطقة ثانية — افتح كل المناطق
+        zoneId = 'all';
+        try { localStorage.setItem('chaychi-zone', 'all'); } catch (e) {}
+        listenZone();
+        return;
+      } else {
+        // جيب الإعلان مباشرة
+        var pid = pendingAdId;
+        db.collection('ads').doc(pid).get().then(function (doc) {
+          if (doc.exists) {
+            var x = doc.data(); x.id = doc.id;
+            if (!ads.some(function (a) { return a.id === x.id; })) ads.unshift(x);
+            adOpenId = x.id;
+            pendingAdId = '';
+            renderAd();
+          }
+        }).catch(function () {});
+      }
+    }
     renderAd();
   }, function () {});
 }
@@ -1010,6 +1074,11 @@ document.addEventListener('click', function (e) {
     e.preventDefault();
     e.stopPropagation();
     sendAdOrder(id);
+    return;
+  } else if (a === 'ad-share') {
+    e.preventDefault();
+    e.stopPropagation();
+    shareAd(id);
     return;
   } else if (a === 'ad') {
     /* لا تغلق/تفتح البطاقة إذا الضغط على أزرار الكمية أو الحقول */
