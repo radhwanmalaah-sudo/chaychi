@@ -74,6 +74,17 @@ form.g { background: var(--surface); border: 1px solid var(--line); border-radiu
   padding: 14px; margin-bottom: 8px; min-height: 120px;
 }
 .orders-panel h2 { margin-top: 0; color: var(--tea); }
+.report {
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px;
+  margin: 10px 0 12px; padding: 10px; background: var(--surface-2); border-radius: 14px;
+}
+.rep-item { text-align: center; }
+.rep-item .rep-l { display: block; font-size: 11px; color: var(--ink-2); margin-bottom: 2px; }
+.rep-item b { font-family: var(--font-display); font-size: 22px; font-weight: 400; color: var(--tea); line-height: 1.2; }
+@media (max-width: 380px) {
+  .report { grid-template-columns: 1fr; }
+  .rep-item { display: flex; justify-content: space-between; align-items: center; text-align: start; }
+}
 .orders-panel .olist { display: grid; gap: 10px; max-height: 55vh; overflow-y: auto; }
 .instbox { margin-top: 10px; text-align: center; }
 .instbox .hint { margin: 6px 0 0; font-size: 12px; color: var(--ink-2); min-height: 1.2em; }
@@ -127,6 +138,11 @@ form.g { background: var(--surface); border: 1px solid var(--line); border-radiu
     <div id="pane-orders" role="tabpanel">
       <div class="orders-panel" id="orders-box">
         <h2>طلبات واردة <span id="ocnt"></span></h2>
+        <div class="report" id="day-report" hidden>
+          <div class="rep-item"><span class="rep-l">طلبات اليوم</span><b id="rep-count">٠</b></div>
+          <div class="rep-item"><span class="rep-l">الدخل اليوم</span><b id="rep-income">٠</b></div>
+          <div class="rep-item"><span class="rep-l">طاولات مشغولة</span><b id="rep-busy">٠</b></div>
+        </div>
         <p class="note" id="ord-note">مهم: اتصل بالزبون أولاً وتأكد من الطلب قبل القبول.</p>
         <div class="olist" id="olist"></div>
       </div>
@@ -206,6 +222,11 @@ try {
 } catch (e) { fbOK = false; }
 
 function $(id) { return document.getElementById(id); }
+function dayKey(ts) {
+  var d = ts ? new Date(ts) : new Date();
+  var y = d.getFullYear(), m = d.getMonth() + 1, day = d.getDate();
+  return y + '-' + (m < 10 ? '0' : '') + m + '-' + (day < 10 ? '0' : '') + day;
+}
 function esc(t) { return String(t == null ? '' : t).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
 function ar(n) {
   if (n == null || n === '') return '';
@@ -512,6 +533,51 @@ function showTab(name) {
   if (ts) ts.setAttribute('aria-selected', String(!orders));
   try { localStorage.setItem('mousl-shop-tab', name); } catch (e) {}
 }
+function syncBusyTables(openOrders) {
+  if (!isVenue() || !adId) return;
+  var busy = {};
+  openOrders.forEach(function (o) {
+    var tn = Number(o.tableNo) || 0;
+    if (tn >= 1) busy[tn] = 1;
+  });
+  var list = Object.keys(busy).map(Number).sort(function (a, b) { return a - b; });
+  var prev = (ad.busyTables || []).slice().sort(function (a, b) { return a - b; });
+  var same = list.length === prev.length && list.every(function (v, i) { return v === prev[i]; });
+  if (same) return;
+  ad.busyTables = list;
+  db.collection('ads').doc(adId).update({ busyTables: list }).catch(function () {});
+}
+function renderDayReport(openOrders) {
+  var rep = $('day-report');
+  if (!rep) return;
+  if (!isVenue() && !isSales()) { rep.hidden = true; return; }
+  rep.hidden = false;
+  var today = dayKey();
+  var todays = adOrders.filter(function (o) {
+    var st = o.status || '';
+    if (st === 'cancelled' || st === 'rejected') return false;
+    var d = o.day || (o.createdAt ? dayKey(o.createdAt) : '');
+    return d === today;
+  });
+  var income = todays.filter(function (o) {
+    return o.status === 'delivered' || o.status === 'closed';
+  }).reduce(function (s, o) { return s + (Number(o.total) || 0); }, 0);
+  // للصالة: الدخل = المنتهية اليوم؛ المفتوحة تُحسب بعدد الطاولات
+  var cur = (ad && ad.currency) || 'iqd';
+  $('rep-count').textContent = ar(todays.length);
+  $('rep-income').textContent = moneyOrd(income, cur === 'none' ? 'iqd' : cur);
+  var busyN = 0;
+  if (isVenue()) {
+    var set = {};
+    openOrders.forEach(function (o) {
+      var tn = Number(o.tableNo) || 0;
+      if (tn) set[tn] = 1;
+    });
+    busyN = Object.keys(set).length;
+  }
+  $('rep-busy').textContent = ar(busyN);
+  var busyLabel = $('rep-busy') && $('rep-busy').previousElementSibling;
+}
 function renderOrders() {
   var box = $('orders-box'), list = $('olist');
   if (!box || !list) return;
@@ -526,6 +592,8 @@ function renderOrders() {
     if (open.length) { badge.hidden = false; badge.textContent = ar(open.length); }
     else badge.hidden = true;
   }
+  renderDayReport(open);
+  syncBusyTables(open);
   if (!open.length) {
     list.innerHTML = '<div class="empty">ماكو طلبات حالياً.</div>';
     return;

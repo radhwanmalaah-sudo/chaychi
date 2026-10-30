@@ -158,16 +158,43 @@ function cartTotal() {
   return t;
 }
 
+function busySet() {
+  var b = (ad && ad.busyTables) || [];
+  var s = {};
+  b.forEach(function (n) { s[Number(n)] = 1; });
+  return s;
+}
 function renderTables() {
   var n = Math.max(1, Math.min(200, Number(ad.tableCount) || 10));
   var sel = $('table');
+  var busy = busySet();
   var html = '';
-  for (var i = 1; i <= n; i++) html += '<option value="' + i + '">طاولة ' + ar(i) + '</option>';
+  var firstFree = 0;
+  for (var i = 1; i <= n; i++) {
+    if (busy[i]) {
+      html += '<option value="' + i + '" disabled>طاولة ' + ar(i) + ' — مشغولة</option>';
+    } else {
+      if (!firstFree) firstFree = i;
+      html += '<option value="' + i + '">طاولة ' + ar(i) + '</option>';
+    }
+  }
+  if (!firstFree) {
+    html = '<option value="">كل الطاولات مشغولة حالياً</option>' + html;
+  }
   sel.innerHTML = html;
   try {
     var kept = localStorage.getItem('chaychi-venue-tbl-' + adId);
-    if (kept && Number(kept) <= n) sel.value = kept;
-  } catch (e) {}
+    if (kept && Number(kept) <= n && !busy[Number(kept)]) sel.value = kept;
+    else if (firstFree) sel.value = String(firstFree);
+  } catch (e) {
+    if (firstFree) sel.value = String(firstFree);
+  }
+  var hint = $('tbl-busy-hint');
+  if (hint) {
+    var nb = Object.keys(busy).length;
+    hint.textContent = nb ? (ar(nb) + ' طاولة مشغولة الآن — المظلّلة غير متاحة.') : '';
+    hint.hidden = !nb;
+  }
 }
 
 function renderMenu() {
@@ -223,6 +250,37 @@ function loadVenue(code) {
     $('vname').textContent = ad.shop || 'الصالة';
     $('vsub').textContent = ad.text || 'اختار طاولتك واطلب من القائمة';
     renderTables();
+    // تحديث مباشر لحالة الطاولات المشغولة
+    if (window._unsubAd) { try { window._unsubAd(); } catch (e) {} }
+    window._unsubAd = db.collection('ads').doc(adId).onSnapshot(function (snap) {
+      if (!snap.exists) return;
+      ad = snap.data(); ad.id = adId;
+      if (!tableNo) renderTables();
+      else if (busySet()[tableNo] && !$('menu').hidden) {
+        // الطاولة انشغلت من طلب ثاني — نترك الزبون يكمل طلبه على نفس الطاولة
+      } else if (!tableNo) {
+        renderTables();
+      } else {
+        renderTables();
+      }
+    });
+    // QR طاولة: ?t=5 أو ?table=5
+    var tp = 0;
+    try {
+      var usp = new URLSearchParams(location.search);
+      tp = Number(usp.get('t') || usp.get('table') || 0) || 0;
+    } catch (e) {}
+    var maxT = Math.max(1, Math.min(200, Number(ad.tableCount) || 10));
+    if (tp >= 1 && tp <= maxT) {
+      if (busySet()[tp]) {
+        $('vsub').textContent = 'طاولة ' + ar(tp) + ' مشغولة حالياً. اختار طاولة ثانية من القائمة.';
+        try { $('table').value = ''; } catch (e) {}
+      } else {
+        tableNo = tp;
+        try { localStorage.setItem('chaychi-venue-tbl-' + adId, String(tableNo)); } catch (e) {}
+        showMenu();
+      }
+    }
   }).catch(function (e) {
     $('vsub').textContent = 'تعذر التحميل. تأكد من الإنترنت.';
   });
@@ -230,7 +288,12 @@ function loadVenue(code) {
 
 $('btn-table').addEventListener('click', function () {
   tableNo = Number($('table').value) || 0;
-  if (!tableNo) return;
+  if (!tableNo) { $('vsub').textContent = 'ماكو طاولة فاضية حالياً. حاول بعد قليل.'; return; }
+  if (busySet()[tableNo]) {
+    $('vsub').textContent = 'طاولة ' + ar(tableNo) + ' مشغولة. اختار طاولة ثانية.';
+    renderTables();
+    return;
+  }
   try { localStorage.setItem('chaychi-venue-tbl-' + adId, String(tableNo)); } catch (e) {}
   cart = {};
   showMenu();
